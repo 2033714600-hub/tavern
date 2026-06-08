@@ -1,0 +1,791 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "世界": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "当前时代": {
+          "default": "一",
+          "type": "string",
+          "enum": [
+            "一",
+            "二",
+            "三"
+          ]
+        },
+        "当前位置": {
+          "default": "中央大陆",
+          "type": "string"
+        },
+        "星历": {
+          "default": "2026年9月1日",
+          "type": "string"
+        },
+        "季节": {
+          "default": "秋季",
+          "type": "string"
+        },
+        "时间": {
+          "default": "清晨",
+          "type": "string"
+        },
+        "飞船能源": {
+          "default": "低功耗",
+          "type": "string",
+          "enum": [
+            "低功耗",
+            "警戒",
+            "耗尽",
+            "分区供电",
+            "恢复供电"
+          ]
+        },
+        "当前研发": {
+          "default": "无",
+          "type": "string"
+        },
+        "研发进度": {
+          "default": 0,
+          "type": "number"
+        }
+      }
+    },
+    "营地": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "人口": {
+          "default": 14,
+          "type": "number"
+        },
+        "生存指标": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "温饱度": {
+              "default": 15,
+              "type": "number"
+            },
+            "栖居度": {
+              "default": 10,
+              "type": "number"
+            },
+            "舒适度": {
+              "default": 0,
+              "type": "number"
+            }
+          }
+        },
+        "营地状态": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "食物储备": {
+              "default": "极度匮乏",
+              "type": "string",
+              "enum": [
+                "极度匮乏",
+                "勉强果腹",
+                "储备充足"
+              ]
+            },
+            "营地防御": {
+              "default": "极弱",
+              "type": "string",
+              "enum": [
+                "极弱",
+                "初具雏形",
+                "坚不可摧"
+              ]
+            },
+            "住所等级": {
+              "default": "露宿",
+              "type": "string",
+              "enum": [
+                "露宿",
+                "简陋窝棚",
+                "稳固聚落",
+                "石砌聚落",
+                "舰城生活区"
+              ]
+            }
+          }
+        },
+        "向心力": {
+          "default": 5,
+          "type": "number"
+        },
+        "篝火燃料": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "当前": {
+              "default": 0,
+              "type": "number"
+            },
+            "上限": {
+              "default": 1000,
+              "type": "number"
+            }
+          }
+        },
+        "防御等级": {
+          "default": 1,
+          "type": "number"
+        },
+        "防御工事": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "耐久": {
+              "default": 85,
+              "type": "number"
+            },
+            "阶段描述": {
+              "default": "简易预警：荆棘绊线与破陶片",
+              "type": "string"
+            },
+            "加固消耗": {
+              "default": {},
+              "type": "object",
+              "properties": {
+                "坚固木材": {
+                  "default": 35,
+                  "type": "number"
+                },
+                "藤蔓": {
+                  "default": 10,
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "仓库等级": {
+          "default": 1,
+          "type": "number"
+        },
+        "仓库设施": {
+          "default": {},
+          "type": "object",
+          "properties": {
+            "阶段描述": {
+              "default": "露天堆叠：资源曝露在外，易受潮损耗",
+              "type": "string"
+            },
+            "扩建消耗": {
+              "default": {},
+              "type": "object",
+              "properties": {
+                "坚固木材": {
+                  "default": 30,
+                  "type": "number"
+                },
+                "藤蔓": {
+                  "default": 12,
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "无名族人基准效率": {
+          "default": 40,
+          "type": "number"
+        },
+        "工作队列并行上限": {
+          "default": 3,
+          "type": "number"
+        },
+        "当前建筑": {
+          "default": {
+            "熄灭的火堆": {
+              "状态": "冰冷",
+              "描述": "只剩下灰烬的火塘，急需重新生火",
+              "功能": "提供照明与温暖（需重新点燃）",
+              "建筑阶段": "已建成"
+            },
+            "简易窝棚": {
+              "状态": "漏风",
+              "描述": "勉强能挡住大风的粗糙庇护所",
+              "功能": "提供基础栖居",
+              "建筑阶段": "受损"
+            }
+          },
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "建筑名称"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "状态": {
+                "type": "string"
+              },
+              "描述": {
+                "type": "string"
+              },
+              "功能": {
+                "default": "",
+                "type": "string"
+              },
+              "建筑阶段": {
+                "default": "已建成",
+                "type": "string",
+                "enum": [
+                  "已建成",
+                  "蓝图",
+                  "建造中",
+                  "受损"
+                ]
+              },
+              "所需材料": {
+                "default": {},
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "number"
+                }
+              },
+              "所需工时": {
+                "default": 0,
+                "type": "number"
+              }
+            },
+            "required": [
+              "状态",
+              "描述"
+            ]
+          }
+        },
+        "物品栏": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "物品名称"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "数量": {
+                "type": "number"
+              },
+              "描述": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "数量",
+              "描述"
+            ]
+          }
+        },
+        "仓库储备": {
+          "default": {
+            "坚固木材": {
+              "当前": 0,
+              "上限": 500
+            },
+            "藤蔓": {
+              "当前": 0,
+              "上限": 200
+            },
+            "石料": {
+              "当前": 0,
+              "上限": 300
+            },
+            "清水": {
+              "当前": 0,
+              "上限": 200
+            },
+            "黏土": {
+              "当前": 0,
+              "上限": 250
+            }
+          },
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "资源名称"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "当前": {
+                "type": "number"
+              },
+              "上限": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "当前",
+              "上限"
+            ]
+          }
+        }
+      }
+    },
+    "已解锁科技": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "部族事务": {
+      "default": {
+        "熬过第一个寒夜": {
+          "说明": "必须尽快生火并分配有限的食物，否则向心力会持续下降。",
+          "级别": "主要"
+        },
+        "评估残骸价值": {
+          "说明": "兽耳娘们还不知道这个铁壳子能换来什么，需要首领做出判断。",
+          "级别": "次要"
+        }
+      },
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "事务名称"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "说明": {
+            "type": "string"
+          },
+          "级别": {
+            "default": "次要",
+            "type": "string",
+            "enum": [
+              "主要",
+              "次要"
+            ]
+          }
+        },
+        "required": [
+          "说明"
+        ]
+      }
+    },
+    "探索编队": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "编队名称"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "状态": {
+            "default": "待命",
+            "type": "string",
+            "enum": [
+              "待命",
+              "探索中",
+              "采集中"
+            ]
+          },
+          "具名成员": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "无名队员数": {
+            "default": 0,
+            "type": "number"
+          },
+          "计划时长": {
+            "default": 4,
+            "type": "number"
+          },
+          "目标区域": {
+            "default": "",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "探索区域": {
+      "default": {
+        "飞船残骸周边": {
+          "描述": "熟悉的营地区域，可采集枯枝与残骸金属碎片。",
+          "路程": "即刻",
+          "危险度": "极低",
+          "已掌握": true,
+          "探索度": 100
+        },
+        "中央大陆林缘": {
+          "描述": "林缘地带，可能找到食草野兽与可食用浆果，偶有狼群出没。",
+          "路程": "半个日落",
+          "危险度": "低",
+          "已掌握": false,
+          "探索度": 30
+        }
+      },
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "区域名称"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "描述": {
+            "type": "string"
+          },
+          "路程": {
+            "type": "string"
+          },
+          "危险度": {
+            "default": "未知",
+            "type": "string"
+          },
+          "已掌握": {
+            "default": false,
+            "type": "boolean"
+          },
+          "探索度": {
+            "default": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "描述",
+          "路程"
+        ]
+      }
+    },
+    "大地见闻": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "见闻标题"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "内容": {
+            "type": "string"
+          },
+          "来源": {
+            "type": "string"
+          },
+          "时间": {
+            "type": "string"
+          },
+          "已处理": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "内容",
+          "来源",
+          "时间"
+        ]
+      }
+    },
+    "工作队列": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "工作项名称"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "类型": {
+            "type": "string",
+            "enum": [
+              "研发",
+              "学习",
+              "建造",
+              "生产"
+            ]
+          },
+          "进度": {
+            "default": 0,
+            "type": "number"
+          },
+          "状态": {
+            "default": "进行中",
+            "type": "string",
+            "enum": [
+              "进行中",
+              "暂停",
+              "已停止",
+              "缺料停工"
+            ]
+          },
+          "具名指派": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "协同兽耳娘数": {
+            "default": 0,
+            "type": "number"
+          },
+          "效率加成": {
+            "default": 0,
+            "type": "number"
+          },
+          "负责人": {
+            "default": "",
+            "type": "string"
+          },
+          "所需工时": {
+            "default": 0,
+            "type": "number"
+          },
+          "优先级": {
+            "default": 5,
+            "type": "number"
+          }
+        },
+        "required": [
+          "类型"
+        ]
+      }
+    },
+    "具名NPC": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "NPC名字"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "种族": {
+            "default": "",
+            "type": "string"
+          },
+          "职务": {
+            "default": "",
+            "type": "string"
+          },
+          "忠诚度": {
+            "default": 0,
+            "type": "number"
+          },
+          "好感度": {
+            "default": 50,
+            "type": "number"
+          },
+          "体力": {
+            "default": 80,
+            "type": "number"
+          },
+          "心情": {
+            "default": "平静",
+            "type": "string"
+          },
+          "状态": {
+            "default": "正常",
+            "type": "string"
+          },
+          "当前位置": {
+            "default": "营地",
+            "type": "string"
+          },
+          "当前任务": {
+            "default": "待命",
+            "type": "string"
+          },
+          "当前想法": {
+            "default": "无",
+            "type": "string"
+          },
+          "饱食度": {
+            "default": 40,
+            "type": "number"
+          },
+          "种族系": {
+            "default": "未知",
+            "type": "string",
+            "enum": [
+              "食草",
+              "食肉",
+              "杂食",
+              "未知"
+            ]
+          },
+          "互动状态": {
+            "default": "无",
+            "type": "string"
+          },
+          "对视时": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "动作": {
+                "default": "",
+                "type": "string"
+              },
+              "表情": {
+                "default": "",
+                "type": "string"
+              },
+              "心里话": {
+                "default": "",
+                "type": "string"
+              }
+            }
+          },
+          "技能": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "狩猎": {
+                "default": 0,
+                "type": "number"
+              },
+              "战斗": {
+                "default": 0,
+                "type": "number"
+              },
+              "采集": {
+                "default": 0,
+                "type": "number"
+              },
+              "后勤": {
+                "default": 0,
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "未收入兽耳娘": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "NPC名字"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "种族": {
+            "default": "",
+            "type": "string"
+          },
+          "好感度": {
+            "default": 50,
+            "type": "number"
+          },
+          "心情": {
+            "default": "平静",
+            "type": "string"
+          },
+          "状态": {
+            "default": "正常",
+            "type": "string"
+          },
+          "当前位置": {
+            "default": "",
+            "type": "string"
+          },
+          "当前想法": {
+            "default": "",
+            "type": "string"
+          },
+          "技能": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "狩猎": {
+                "default": 0,
+                "type": "number"
+              },
+              "战斗": {
+                "default": 0,
+                "type": "number"
+              },
+              "采集": {
+                "default": 0,
+                "type": "number"
+              },
+              "后勤": {
+                "default": 0,
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "主角": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "威望称号": {
+          "default": "无耳族废品雄性",
+          "type": "string"
+        },
+        "威望": {
+          "default": 0,
+          "type": "number"
+        },
+        "随身装备": {
+          "default": {
+            "战术终端": {
+              "状态": "受限于太阳能",
+              "电量或弹药": "低"
+            },
+            "多功能生存服": {
+              "状态": "恒温受损",
+              "电量或弹药": "无"
+            },
+            "9毫米半自动手枪": {
+              "状态": "完好",
+              "电量或弹药": "极少"
+            },
+            "高周波工兵铲": {
+              "状态": "电池耗尽",
+              "电量或弹药": "无"
+            }
+          },
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "装备名称"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "状态": {
+                "type": "string"
+              },
+              "电量或弹药": {
+                "default": "无",
+                "type": "string"
+              }
+            },
+            "required": [
+              "状态"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

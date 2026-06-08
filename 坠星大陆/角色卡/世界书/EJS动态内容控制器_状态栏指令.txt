@@ -1,0 +1,65 @@
+@@preprocessing
+<%
+if (typeof recentUserInput === 'undefined') {
+  var recentUserInput = '';
+  var recentChat = '';
+  const msgs = getChatMessages(-1, -5);
+  for (let m of msgs) {
+    recentChat += m.message + ' ';
+    if (m.is_user) recentUserInput = m.message;
+  }
+}
+var _isFloorZero = typeof isFloorZero !== 'undefined' ? isFloorZero : (getChatMessages().length === 0);
+const _input = recentUserInput || recentChat;
+%>
+
+<% if (!_isFloorZero && _input) { %>
+
+<% if (_input.includes('[召开部族会议')) { %>
+<%- await getwi('部族会议规则') %>
+<% } %>
+
+<% if (_input.includes('[与') && _input.includes('互动]')) { %>
+<%- await getwi('兽耳娘互动规则') %>
+<% } %>
+
+<% if (_input.includes('[加固栅栏]')) { %>
+<%- await getwi('护栏加固策略规则') %>
+<% } %>
+
+<% if (_input.includes('[升级仓库]')) { %>
+<%- await getwi('设施管理规则') %>
+<% } %>
+
+<% if (_input.includes('[规划新设施]')) { %>
+<%- await getwi('规划新设施规则') %>
+<%- await getwi('工作队列规则') %>
+<% } %>
+
+<% if (_input.includes('[设施管理·')) { %>
+<%- await getwi('设施管理规则') %>
+<% } %>
+
+<% if (_input.includes('[工作队列·')) { %>
+【当前工作队列并行上限】<%- getvar('stat_data.营地.工作队列并行上限', { defaults: 3 }) %>
+【无名族人基准效率】<%- getvar('stat_data.营地.无名族人基准效率', { defaults: 40 }) %>%
+<%- await getwi('工作队列规则') %>
+<%- await getwi('无名NPC工作效率系统') %>
+<% } %>
+
+<% if (
+  _input.includes('[新建编队]') ||
+  _input.includes('[解散编队]') ||
+  _input.includes('[编队调整]') ||
+  _input.includes('[出发探索]') ||
+  _input.includes('[外出采集]') ||
+  _input.includes('[探索]') ||
+  _input.includes('[采集]') ||
+  _input.includes('[忽略区域]') ||
+  _input.includes('[处理见闻]')
+) { %>
+<%- await getwi('区域探索与采集规则') %>
+<%- await getwi('无名NPC工作效率系统') %>
+<% } %>
+
+<% } %>

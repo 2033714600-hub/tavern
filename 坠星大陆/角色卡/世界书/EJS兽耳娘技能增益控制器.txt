@@ -1,0 +1,166 @@
+@@preprocessing
+<%
+if (typeof recentUserInput === 'undefined') {
+  var recentUserInput = '';
+  var recentChat = '';
+  const msgs = getChatMessages(-1, -5);
+  for (let m of msgs) {
+    recentChat += m.message + ' ';
+    if (m.is_user) recentUserInput = m.message;
+  }
+}
+var _isFloorZero = typeof isFloorZero !== 'undefined' ? isFloorZero : (getChatMessages().length === 0);
+const _input = recentUserInput || recentChat;
+
+function _clampSkill(v) {
+  const n = Number(v);
+  if (isNaN(n)) return 0;
+  return Math.max(0, Math.min(100, Math.floor(n)));
+}
+
+function _skillTier(v) {
+  v = _clampSkill(v);
+  if (v >= 80) return '大师';
+  if (v >= 60) return '精通';
+  if (v >= 40) return '熟练';
+  if (v >= 20) return '入门';
+  return '生疏';
+}
+
+function _skillBonuses(skills) {
+  const s = skills || {};
+  const 狩猎 = _clampSkill(s.狩猎);
+  const 战斗 = _clampSkill(s.战斗);
+  const 采集 = _clampSkill(s.采集);
+  const 后勤 = _clampSkill(s.后勤);
+  return {
+    狩猎, 战斗, 采集, 后勤,
+    狩猎_猎获: Math.floor(狩猎 * 0.4),
+    狩猎_完整度: Math.floor(狩猎 * 0.3),
+    战斗_战力: 100 + Math.floor(战斗 * 0.8),
+    战斗_减伤: Math.floor(战斗 * 0.25),
+    采集_产量: Math.floor(采集 * 0.5),
+    采集_减意外: Math.floor(采集 * 0.2),
+    后勤_效率: Math.floor(后勤 * 0.45),
+    后勤_减损耗: Math.floor(后勤 * 0.2),
+    后勤_监工: Math.floor(后勤 / 8),
+  };
+}
+
+function _formatNpcSkillBlock(name, skills, role) {
+  const b = _skillBonuses(skills);
+  return (
+    '· ' + name + (role ? '（' + role + '）' : '') + '\n' +
+    '  狩猎' + b.狩猎 + '[' + _skillTier(b.狩猎) + '] → 猎获+' + b.狩猎_猎获 + '% 完整度+' + b.狩猎_完整度 + '%\n' +
+    '  战斗' + b.战斗 + '[' + _skillTier(b.战斗) + '] → 战力' + b.战斗_战力 + '% 负伤-' + b.战斗_减伤 + '%\n' +
+    '  采集' + b.采集 + '[' + _skillTier(b.采集) + '] → 产量+' + b.采集_产量 + '% 意外-' + b.采集_减意外 + '%\n' +
+    '  后勤' + b.后勤 + '[' + _skillTier(b.后勤) + '] → 队列+' + b.后勤_效率 + '% 损耗-' + b.后勤_减损耗 + '% 监工+' + b.后勤_监工 + '%'
+  );
+}
+
+const _coreNpcSkills = {
+  春: { 狩猎: 72, 战斗: 68, 采集: 28, 后勤: 22 },
+  白: { 狩猎: 12, 战斗: 18, 采集: 52, 后勤: 82 },
+  林: { 狩猎: 25, 战斗: 22, 采集: 48, 后勤: 55 },
+  菊: { 狩猎: 58, 战斗: 62, 采集: 38, 后勤: 45 },
+};
+
+function _resolveSkills(name, skills) {
+  const s = skills || {};
+  const base = _coreNpcSkills[name];
+  if (!base) return s;
+  const out = { ...base };
+  for (const k of ['狩猎', '战斗', '采集', '后勤']) {
+    const v = s[k];
+    if (v != null && _clampSkill(v) > 0) out[k] = _clampSkill(v);
+  }
+  return out;
+}
+
+function _needSkillCalc(input) {
+  return (
+    input.includes('[工作队列·') ||
+    input.includes('[出发探索]') ||
+    input.includes('[外出采集]') ||
+    input.includes('[探索]') ||
+    input.includes('[采集]') ||
+    input.includes('[新建编队]') ||
+    input.includes('[编队调整]') ||
+    input.includes('[邀请') && input.includes('入营]')
+  );
+}
+
+const _namedNpcs = getvar('stat_data.具名NPC', { defaults: {} }) || {};
+const _unrecruited = getvar('stat_data.未收入兽耳娘', { defaults: {} }) || {};
+%>
+
+<% if (!_isFloorZero && _input && _needSkillCalc(_input)) { %>
+【当期兽耳娘技能核算·由EJS自动换算，结算须遵循】
+<%- await getwi('兽耳娘技能与能力增益规则') %>
+
+<% if (Object.keys(_namedNpcs).length) { %>
+--- 营地具名NPC技能快照 ---
+<% for (const name of Object.keys(_namedNpcs)) {
+  const npc = _namedNpcs[name] || {};
+  const skills = _resolveSkills(name, npc.技能 || getvar('stat_data.具名NPC.' + name + '.技能', { defaults: {} }));
+%>
+<%- _formatNpcSkillBlock(name, skills, npc.职务 || '') %>
+<% } %>
+<% } %>
+
+<% if (_input.includes('[邀请') && _input.includes('入营]')) {
+  const m = _input.match(/\[邀请(.+?)入营\]/);
+  const target = m ? m[1].trim() : '';
+  if (target && _unrecruited[target]) {
+    const u = _unrecruited[target];
+%>
+--- 待收入「<%- target %>」技能预览 ---
+<%- _formatNpcSkillBlock(target, _resolveSkills(target, u.技能 || {}), '未入营') %>
+<%   }
+} %>
+
+<% if (
+  _input.includes('[出发探索]') ||
+  _input.includes('[外出采集]') ||
+  _input.includes('[探索]') ||
+  _input.includes('[采集]')
+) {
+  const squads = getvar('stat_data.探索编队', { defaults: {} }) || {};
+%>
+--- 探索编队技能加权提示 ---
+<% for (const squadName of Object.keys(squads)) {
+  const squad = squads[squadName] || {};
+  const members = squad.具名成员 || [];
+  if (!members.length) continue;
+  let lead = members[0];
+  let leadNpc = _namedNpcs[lead] || {};
+  let leadSkills = _resolveSkills(lead, leadNpc.技能 || {});
+  let leadB = _skillBonuses(leadSkills);
+  const isExplore = _input.includes('探索') && !_input.includes('采集');
+  const isGather = _input.includes('采集');
+%>
+编队「<%- squadName %>」带队:<%- lead %> → <% if (isExplore) { %>战斗战力<%- leadB.战斗_战力 %>% + 狩猎猎获+<%- leadB.狩猎_猎获 %>%<% } else if (isGather) { %>采集产量+<%- leadB.采集_产量 %>%<% } else { %>综合按任务类型取战斗/狩猎/采集主技能<% } %>
+<% } %>
+<% } %>
+
+<% if (_input.includes('[工作队列·')) {
+  const queue = getvar('stat_data.工作队列', { defaults: {} }) || {};
+%>
+--- 工作队列后勤技能提示 ---
+<% for (const itemName of Object.keys(queue)) {
+  const item = queue[itemName] || {};
+  const assigned = item.具名指派 || [];
+  if (!assigned.length) continue;
+  let bestLog = 0;
+  let bestName = assigned[0];
+  for (const n of assigned) {
+    const sk = (_resolveSkills(n, (_namedNpcs[n] || {}).技能 || {})).后勤 || 0;
+    if (_clampSkill(sk) > bestLog) { bestLog = _clampSkill(sk); bestName = n; }
+  }
+  const b = _skillBonuses(_resolveSkills(bestName, (_namedNpcs[bestName] || {}).技能 || {}));
+%>
+「<%- itemName %>」主后勤:<%- bestName %> → 队列效率+<%- b.后勤_效率 %>% 材料损耗-<%- b.后勤_减损耗 %>% 监工无名+<%- b.后勤_监工 %>%
+<% } %>
+<% } %>
+
+<% } %>

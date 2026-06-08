@@ -1,0 +1,335 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* ================= 基础重置 ================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: transparent;
+            padding: 12px;
+        }
+
+        /* ================= 正文容器样式 ================= */
+        .story-container {
+            max-width: 680px;
+            margin: 0 auto;
+            position: relative;
+            background: linear-gradient(135deg, #fdfbf7 0%, #f1f8f1 100%);
+            border: 2px dashed #a5d6a7;
+            border-radius: 16px;
+            padding: 30px 36px;
+            color: #3e4a3d;
+            box-shadow: 0 4px 15px rgba(165, 214, 167, 0.2);
+            overflow: hidden;
+        }
+
+        .story-container::before {
+            content: "🐾";
+            position: absolute;
+            bottom: -20px;
+            right: 10px;
+            font-size: 120px;
+            opacity: 0.04;
+            color: #4caf50;
+            transform: rotate(-15deg);
+            pointer-events: none;
+        }
+
+        .story-container::after {
+            content: "🐾";
+            position: absolute;
+            top: 20px;
+            left: 15px;
+            font-size: 60px;
+            opacity: 0.05;
+            color: #4caf50;
+            transform: rotate(25deg);
+            pointer-events: none;
+        }
+
+        .story-content {
+            line-height: 1.8;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .narrative {
+            margin-bottom: 16px;
+            text-align: justify;
+        }
+
+        .dialogue {
+            margin-bottom: 16px;
+            color: #2e5a2f;
+            padding: 8px 14px 8px 30px;
+            background-color: rgba(165, 214, 167, 0.15);
+            border-radius: 12px 12px 12px 0;
+            position: relative;
+        }
+
+        .dialogue::before {
+            content: "🐾";
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            font-size: 12px;
+            color: #81c784;
+            opacity: 0.7;
+        }
+
+        /* ================= NPC 卡片样式 ================= */
+        .npc-panel-container {
+            background-color: #e8dcb8;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.06'/%3E%3C/svg%3E");
+            border: 3px solid #8b5a2b;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px auto;
+            color: #4a3b2c;
+            font-family: "Microsoft YaHei", sans-serif;
+            max-width: 90%;
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.3);
+            position: relative;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        .npc-panel-container::after {
+            content: "🐾";
+            position: absolute;
+            bottom: -15px;
+            right: 10px;
+            font-size: 90px;
+            color: #8b5a2b;
+            opacity: 0.08;
+            transform: rotate(-20deg);
+            pointer-events: none;
+        }
+
+        .npc-panel-header {
+            border-bottom: 2px dashed rgba(165, 214, 167, 0.8);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            position: relative;
+            z-index: 1;
+        }
+        .npc-panel-name { font-size: 1.2em; font-weight: bold; color: #2e5a2f; }
+        .npc-panel-race { font-size: 0.9em; color: #6b5c4a; font-style: italic; }
+
+        .npc-panel-stats { margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 1; }
+        .npc-panel-stat-row { display: flex; justify-content: space-between; }
+        .npc-panel-label { color: #6b5c4a; font-weight: 500; }
+        .npc-panel-value-hunger { color: #e65100; font-weight: bold; }
+        .npc-panel-value-loyal { color: #2e7d32; font-weight: bold; }
+
+        .npc-panel-skills-box {
+            background-color: rgba(255, 255, 255, 0.45);
+            border: 1px dashed #a5d6a7;
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        .npc-panel-skills-title { font-size: 0.85em; color: #8d6e63; margin-bottom: 4px; font-weight: bold; }
+        .npc-panel-skills-text { font-size: 0.9em; color: #3a2b1c; }
+
+        .npc-panel-behavior {
+            font-size: 0.85em;
+            color: #4a3b2c;
+            line-height: 1.5;
+            border-left: 3px solid #81c784;
+            padding-left: 10px;
+            background: rgba(165, 214, 167, 0.15);
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-radius: 0 6px 6px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .loading, .error-msg {
+            text-align: center;
+            padding: 20px;
+            color: #8fa38c;
+            font-size: 14px;
+        }
+        .error-msg { color: #e57373; }
+    </style>
+</head>
+<body>
+    <div class="story-container">
+        <div id="content" class="story-content">
+            <div class="loading">正在拨开草丛...</div>
+        </div>
+    </div>
+
+    <script>
+        /* ========== 获取消息内容 ========== */
+        function getMessageData() {
+            var chatMessages = getChatMessages(getCurrentMessageId());
+            if (!chatMessages || chatMessages.length === 0) {
+                return null;
+            }
+            return chatMessages[0].message;
+        }
+
+        /* ========== 提取外层正文 ========== */
+        function extractContent(messageText) {
+            var match = messageText.match(/(?:<|&lt;)story(?:>|&gt;)([\s\S]*?)(?:<|&lt;)\/story(?:>|&gt;)/);
+            if (match && match[1]) {
+                return match[1].trim();
+            }
+            return messageText;
+        }
+
+        /* ========== 渲染普通正文段落 ========== */
+        function renderNormalText(text) {
+            if (!text || !text.trim()) return '';
+            var paragraphs = text.split(/\n\s*\n/);
+            var html = '';
+
+            paragraphs.forEach(function(p) {
+                var lines = p.split('\n');
+                lines.forEach(function(line) {
+                    /* 去除HTML标签和多余空格 */
+                    var cleanLine = line.replace(/<br\s*\/?>/gi, '').trim();
+                    if (cleanLine) {
+                        /* 识别对话并渲染 */
+                        if (cleanLine.startsWith('“') || cleanLine.startsWith('”') || cleanLine.startsWith('"') || cleanLine.startsWith('「')) {
+                            html += '<p class="dialogue">' + cleanLine + '</p>';
+                        } else {
+                            html += '<p class="narrative">' + cleanLine + '</p>';
+                        }
+                    }
+                });
+            });
+            return html;
+        }
+
+        /* ========== 渲染NPC卡片 ========== */
+        function renderNpcPanel(content) {
+            var result = {};
+            var values = [];
+
+            /* 提取所有方括号内的内容 */
+            var regex = /\[(.*?)\]/g;
+            var match;
+            while ((match = regex.exec(content)) !== null) {
+                values.push(match[1].trim());
+            }
+
+            /* 按设定的固定顺序赋值 */
+            if (values.length >= 6) {
+                result['姓名'] = values[0];
+                result['种族'] = values[1];
+                /* 把饱食度和忠诚度里的竖线替换成空格，或者直接保留也行，这里替换成横杠更好看 */
+                result['饱食度'] = values[2].replace('|', ' - ');
+                result['忠诚度'] = values[3].replace('|', ' - ');
+                result['技能'] = values[4];
+                result['行为'] = values[5];
+            } else {
+                /* 兜底，万一格式不对 */
+                result['姓名'] = values[0] || '未知名字';
+                result['种族'] = values[1] || '未知种族';
+                result['饱食度'] = values[2] ? values[2].replace('|', ' - ') : '???';
+            }
+
+            /* 拼接卡片 HTML */
+            var html = '<div class="npc-panel-container">' +
+                '<div class="npc-panel-header">' +
+                '<span class="npc-panel-name">🐾 【' + (result['姓名'] || '未知名字') + '】</span>' +
+                '<span class="npc-panel-race">' + (result['种族'] || '未知种族') + '</span>' +
+                '</div>' +
+                '<div class="npc-panel-stats">' +
+                '<div class="npc-panel-stat-row">' +
+                '<span class="npc-panel-label">饱食度</span>' +
+                '<span class="npc-panel-value-hunger">' + (result['饱食度'] || '???') + '</span>' +
+                '</div>' +
+                '<div class="npc-panel-stat-row">' +
+                '<span class="npc-panel-label">忠诚度</span>' +
+                '<span class="npc-panel-value-loyal">' + (result['忠诚度'] || '???') + '</span>' +
+                '</div>' +
+                '</div>' +
+                '<div class="npc-panel-skills-box">' +
+                '<div class="npc-panel-skills-title">🌿 生存技能</div>' +
+                '<div class="npc-panel-skills-text">' + (result['技能'] || '暂无数据') + '</div>' +
+                '</div>' +
+                '<div class="npc-panel-behavior">' +
+                '<strong>初见行为：</strong>' + (result['行为'] || '没有记录哦') +
+                '</div>' +
+                '</div>';
+
+            return html;
+        }
+
+        /* ========== 综合解析与渲染 ========== */
+        function parseAndRenderAll(text) {
+            var html = '';
+
+            /* 使用正则寻找嵌在正文里的 npc_panel */
+            var npcRegex = /(?:<|&lt;)npc_panel(?:>|&gt;)([\s\S]*?)(?:<|&lt;)\/npc_panel(?:>|&gt;)/g;
+            var lastIndex = 0;
+            var match;
+
+            while ((match = npcRegex.exec(text)) !== null) {
+                /* 1. 渲染卡片前面的普通正文 */
+                var normalText = text.substring(lastIndex, match.index);
+                html += renderNormalText(normalText);
+
+                /* 2. 渲染 NPC 卡片 */
+                var panelContent = match[1];
+                html += renderNpcPanel(panelContent);
+
+                lastIndex = npcRegex.lastIndex;
+            }
+
+            /* 3. 渲染最后剩下的普通正文 */
+            if (lastIndex < text.length) {
+                var remainingText = text.substring(lastIndex);
+                html += renderNormalText(remainingText);
+            }
+
+            document.getElementById('content').innerHTML = html || '<p class="narrative">空空的草地，什么都没有呢。</p>';
+        }
+
+        /* ========== 主函数 ========== */
+        function init() {
+            try {
+                var messageText = getMessageData();
+                if (!messageText) {
+                    document.getElementById('content').innerHTML =
+                        '<div class="error-msg">❌ 找不到消息内容啦。</div>';
+                    return;
+                }
+
+                /* 提取最外层的 story 标签内容 */
+                var text = extractContent(messageText);
+
+                /* 综合渲染 */
+                parseAndRenderAll(text);
+
+            } catch (error) {
+                document.getElementById('content').innerHTML =
+                    '<div class="error-msg">❌ 渲染失败：' + error.message + '</div>';
+            }
+        }
+
+        $(function() { init(); });
+    </script>
+</body>
+</html>
+```

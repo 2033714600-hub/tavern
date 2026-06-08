@@ -1,0 +1,25 @@
+@@preprocessing
+<%
+if (typeof recentChat === 'undefined') {
+  var recentChat = '';
+  const msgs = getChatMessages(-1, -3); // 获取最近三条对话
+  for (let m of msgs) {
+    recentChat += m.message + ' ';
+  }
+}
+var _isFloorZero = typeof isFloorZero !== 'undefined' ? isFloorZero : (getChatMessages().length === 0);
+%>
+
+<% if (!_isFloorZero) { %>
+
+<% if (recentChat.includes('中央大陆') || recentChat.includes('神州')) { %>
+<%- await getwi('中央大陆') %>
+<% } else if (recentChat.includes('极北冻土') || recentChat.includes('冻土') || recentChat.includes('极北')) { %>
+<%- await getwi('极北冻土') %>
+<% } else if (recentChat.includes('西部半岛群') || recentChat.includes('半岛群') || recentChat.includes('半岛')) { %>
+<%- await getwi('西部半岛群') %>
+<% } else if (recentChat.includes('烈日荒原') || recentChat.includes('荒原') || recentChat.includes('沙漠')) { %>
+<%- await getwi('烈日荒原') %>
+<% } %>
+
+<% } %>

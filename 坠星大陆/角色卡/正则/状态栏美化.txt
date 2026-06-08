@@ -1,0 +1,7 @@
+```html
+<body>
+<script>
+$('body').load('https://testingcf.jsdelivr.net/gh/2033714600-hub/tavern@main/dist/兽耳娘/界面/状态栏/index.html');
+</script>
+</body>
+```

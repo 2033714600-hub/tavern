@@ -1,0 +1,10 @@
+<%_
+if (typeof currentEra === 'undefined') var currentEra = getvar('stat_data.世界.当前时代', { defaults: '一' });
+_%>
+<%_ if (currentEra === '一') { _%>
+<%- await getwi('[殖民]时代I') %>
+<%_ } else if (currentEra === '二') { _%>
+<%- await getwi('[殖民]时代II') %>
+<%_ } else if (currentEra === '三') { _%>
+<%- await getwi('[殖民]时代III') %>
+<%_ } _%>

@@ -1,0 +1,487 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* ================= 基础重置 ================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: transparent;
+            padding: 12px;
+        }
+
+        /* ================= CSS 变量 (用于主题切换) ================= */
+        :root {
+            /* ================= 白天模式变量 (保持不变) ================= */
+            --bg-gradient: linear-gradient(135deg, #fdfbf7 0%, #f1f8f1 100%);
+            --border-color: #a5d6a7;
+            --text-color: #3e4a3d;
+            --paw-color-large: rgba(76, 175, 80, 0.04);
+            --paw-color-small: rgba(76, 175, 80, 0.05);
+            --dialogue-bg: rgba(165, 214, 167, 0.15);
+            --dialogue-text: #2e5a2f;
+            --dialogue-paw: rgba(129, 199, 132, 0.7);
+
+            /* 题头渐变白天变量 */
+            --header-bg: linear-gradient(180deg, rgba(165, 214, 167, 0.6) 0%, rgba(165, 214, 167, 0) 100%);
+            --header-text: #2e5a2f;
+            --header-btn-bg: rgba(76, 175, 80, 0.12);
+            --header-btn-border: rgba(76, 175, 80, 0.3);
+            --header-btn-text: #2e5a2f;
+
+            /* NPC卡片白天变量 */
+            --npc-bg: #e8dcb8;
+            --npc-border: #8b5a2b;
+            --npc-text: #4a3b2c;
+            --npc-paw: rgba(139, 90, 43, 0.08);
+            --npc-name: #2e5a2f;
+            --npc-race: #6b5c4a;
+            --npc-hunger: #e65100;
+            --npc-loyal: #2e7d32;
+            --npc-skills-bg: rgba(255, 255, 255, 0.45);
+            --npc-behavior-bg: rgba(165, 214, 167, 0.15);
+            --npc-behavior-border: #81c784;
+        }
+
+        .dark-mode {
+            /* ================= 夜间模式变量 (原始夜空与微火感) ================= */
+            /* 背景：深邃无光的荒野夜空 */
+            --bg-gradient: linear-gradient(135deg, #0d1117 0%, #05070a 100%);
+            --border-color: #334155;
+            --text-color: #cbd5e1;
+            --paw-color-large: rgba(255, 255, 255, 0.02);
+            --paw-color-small: rgba(255, 255, 255, 0.03);
+
+            /* 对话：静谧的幽蓝星光感 */
+            --dialogue-bg: rgba(30, 41, 59, 0.5);
+            --dialogue-text: #94a3b8;
+            --dialogue-paw: rgba(148, 163, 184, 0.3);
+
+            /* 题头渐变：从夜空顶端自然暗下 */
+            --header-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.8) 0%, rgba(15, 23, 42, 0) 100%);
+            --header-text: #94a3b8;
+            --header-btn-bg: rgba(255, 255, 255, 0.05);
+            --header-btn-border: rgba(255, 255, 255, 0.1);
+            --header-btn-text: #94a3b8;
+
+            /* NPC卡片：暗夜火塘照亮的暗色兽皮质感 */
+            --npc-bg: #1c1916;
+            --npc-border: #3d2e20;
+            --npc-text: #a89f91;
+            --npc-paw: rgba(255, 255, 255, 0.02);
+            --npc-name: #d4b595;
+            --npc-race: #7a6e60;
+            --npc-hunger: #c26d2e;
+            --npc-loyal: #6c7a65;
+            --npc-skills-bg: rgba(0, 0, 0, 0.4);
+            --npc-behavior-bg: rgba(0, 0, 0, 0.3);
+            --npc-behavior-border: #5c4b37;
+        }
+
+        /* ================= 正文容器样式 ================= */
+        .story-container {
+            max-width: 680px;
+            margin: 0 auto;
+            position: relative;
+            background: var(--bg-gradient);
+            border: 2px dashed var(--border-color);
+            border-radius: 16px;
+            padding: 0;
+            color: var(--text-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .story-container::before {
+            content: "🐾";
+            position: absolute;
+            bottom: -20px;
+            right: 10px;
+            font-size: 120px;
+            color: var(--paw-color-large);
+            transform: rotate(-15deg);
+            pointer-events: none;
+            transition: color 0.4s ease;
+        }
+
+        .story-container::after {
+            content: "🐾";
+            position: absolute;
+            top: 80px;
+            left: 15px;
+            font-size: 60px;
+            color: var(--paw-color-small);
+            transform: rotate(25deg);
+            pointer-events: none;
+            transition: color 0.4s ease;
+        }
+
+        /* ================= 题头样式 (渐变过渡) ================= */
+        .story-header {
+            background: var(--header-bg);
+            padding: 18px 28px 30px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            margin-bottom: -15px;
+            transition: background 0.4s ease;
+        }
+
+        .header-title {
+            color: var(--header-text);
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.4s ease;
+        }
+
+        .header-title::before {
+            content: "🌿";
+            font-size: 20px;
+        }
+
+        /* 夜空模式下把标题前的小叶子换成星星，增加氛围感 */
+        .dark-mode .header-title::before {
+            content: "✨";
+        }
+
+        .theme-btn {
+            background: var(--header-btn-bg);
+            border: 1px solid var(--header-btn-border);
+            border-radius: 20px;
+            padding: 4px 12px;
+            color: var(--header-btn-text);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-btn:hover {
+            background: var(--header-btn-border);
+        }
+
+        /* ================= 正文内容区域 ================= */
+        .story-content {
+            padding: 10px 36px 30px 36px;
+            line-height: 1.8;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .narrative {
+            margin-bottom: 16px;
+            text-align: justify;
+        }
+
+        .dialogue {
+            margin-bottom: 16px;
+            color: var(--dialogue-text);
+            padding: 8px 14px 8px 30px;
+            background-color: var(--dialogue-bg);
+            border-radius: 12px 12px 12px 0;
+            position: relative;
+            transition: all 0.4s ease;
+        }
+
+        .dialogue::before {
+            content: "🐾";
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            font-size: 12px;
+            color: var(--dialogue-paw);
+            transition: color 0.4s ease;
+        }
+
+        /* ================= NPC 卡片样式 ================= */
+        .npc-panel-container {
+            background-color: var(--npc-bg);
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.06'/%3E%3C/svg%3E");
+            border: 3px solid var(--npc-border);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px auto;
+            color: var(--npc-text);
+            font-family: "Microsoft YaHei", sans-serif;
+            max-width: 90%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+            line-height: 1.5;
+            transition: all 0.4s ease;
+        }
+
+        .npc-panel-container::after {
+            content: "🐾";
+            position: absolute;
+            bottom: -15px;
+            right: 10px;
+            font-size: 90px;
+            color: var(--npc-paw);
+            transform: rotate(-20deg);
+            pointer-events: none;
+            transition: color 0.4s ease;
+        }
+
+        .npc-panel-header {
+            border-bottom: 2px dashed var(--border-color);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            position: relative;
+            z-index: 1;
+            transition: border-color 0.4s ease;
+        }
+
+        .npc-panel-name { font-size: 1.2em; font-weight: bold; color: var(--npc-name); transition: color 0.4s ease; }
+        .npc-panel-race { font-size: 0.9em; color: var(--npc-race); font-style: italic; transition: color 0.4s ease; }
+
+        .npc-panel-stats { margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 1; }
+        .npc-panel-stat-row { display: flex; justify-content: space-between; }
+        .npc-panel-label { color: var(--npc-race); font-weight: 500; }
+        .npc-panel-value-hunger { color: var(--npc-hunger); font-weight: bold; transition: color 0.4s ease; }
+        .npc-panel-value-loyal { color: var(--npc-loyal); font-weight: bold; transition: color 0.4s ease; }
+
+        .npc-panel-skills-box {
+            background-color: var(--npc-skills-bg);
+            border: 1px dashed var(--border-color);
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+            transition: all 0.4s ease;
+        }
+        .npc-panel-skills-title { font-size: 0.85em; color: var(--npc-race); margin-bottom: 4px; font-weight: bold; transition: color 0.4s ease;}
+        .npc-panel-skills-text { font-size: 0.9em; color: var(--npc-text); transition: color 0.4s ease;}
+
+        .npc-panel-behavior {
+            font-size: 0.85em;
+            color: var(--npc-text);
+            line-height: 1.5;
+            border-left: 3px solid var(--npc-behavior-border);
+            padding-left: 10px;
+            background: var(--npc-behavior-bg);
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-radius: 0 6px 6px 0;
+            position: relative;
+            z-index: 1;
+            transition: all 0.4s ease;
+        }
+
+        .loading, .error-msg {
+            text-align: center;
+            padding: 20px;
+            color: #8fa38c;
+            font-size: 14px;
+        }
+        .error-msg { color: #e57373; }
+    </style>
+</head>
+<body>
+    <div class="story-container" id="mainContainer">
+        <!-- 题头区域 -->
+        <div class="story-header">
+            <div class="header-title">坠星大陆</div>
+            <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+                <span id="themeIcon">🌙</span> 关灯
+            </button>
+        </div>
+
+        <!-- 正文区域 -->
+        <div id="content" class="story-content">
+            <div class="loading">正在拨开草丛...</div>
+        </div>
+    </div>
+
+    <script>
+        /* ========== 主题切换功能 ========== */
+        function toggleTheme() {
+            var container = document.getElementById('mainContainer');
+            var btnIcon = document.getElementById('themeIcon');
+            var btnText = document.getElementById('themeBtn');
+
+            container.classList.toggle('dark-mode');
+
+            if (container.classList.contains('dark-mode')) {
+                btnText.innerHTML = '<span id="themeIcon">☀️</span> 开灯';
+            } else {
+                btnText.innerHTML = '<span id="themeIcon">🌙</span> 关灯';
+            }
+        }
+
+        /* ========== 获取消息内容 ========== */
+        function getMessageData() {
+            var chatMessages = getChatMessages(getCurrentMessageId());
+            if (!chatMessages || chatMessages.length === 0) {
+                return null;
+            }
+            return chatMessages[0].message;
+        }
+
+        /* ========== 提取外层正文 ========== */
+        function extractContent(messageText) {
+            var match = messageText.match(/(?:<|&lt;)story(?:>|&gt;)([\s\S]*?)(?:<|&lt;)\/story(?:>|&gt;)/);
+            if (match && match[1]) {
+                return match[1].trim();
+            }
+            return messageText;
+        }
+
+        /* ========== 渲染普通正文段落 ========== */
+        function renderNormalText(text) {
+            if (!text || !text.trim()) return '';
+            var paragraphs = text.split(/\n\s*\n/);
+            var html = '';
+
+            paragraphs.forEach(function(p) {
+                var lines = p.split('\n');
+                lines.forEach(function(line) {
+                    /* 去除HTML标签和多余空格 */
+                    var cleanLine = line.replace(/<br\s*\/?>/gi, '').trim();
+                    if (cleanLine) {
+                        /* 识别对话并渲染 */
+                        if (cleanLine.startsWith('“') || cleanLine.startsWith('”') || cleanLine.startsWith('"') || cleanLine.startsWith('「')) {
+                            html += '<p class="dialogue">' + cleanLine + '</p>';
+                        } else {
+                            html += '<p class="narrative">' + cleanLine + '</p>';
+                        }
+                    }
+                });
+            });
+            return html;
+        }
+
+        /* ========== 渲染NPC卡片 ========== */
+        function renderNpcPanel(content) {
+            var result = {};
+            var values = [];
+
+            /* 提取所有方括号内的内容 */
+            var regex = /\[(.*?)\]/g;
+            var match;
+            while ((match = regex.exec(content)) !== null) {
+                values.push(match[1].trim());
+            }
+
+            /* 按设定的固定顺序赋值 */
+            if (values.length >= 6) {
+                result['姓名'] = values[0];
+                result['种族'] = values[1];
+                result['饱食度'] = values[2].replace('|', ' - ');
+                result['忠诚度'] = values[3].replace('|', ' - ');
+                result['技能'] = values[4];
+                result['行为'] = values[5];
+            } else {
+                /* 兜底，万一格式不对 */
+                result['姓名'] = values[0] || '未知名字';
+                result['种族'] = values[1] || '未知种族';
+                result['饱食度'] = values[2] ? values[2].replace('|', ' - ') : '???';
+            }
+
+            /* 拼接卡片 HTML */
+            var html = '<div class="npc-panel-container">' +
+                '<div class="npc-panel-header">' +
+                '<span class="npc-panel-name">🐾 【' + (result['姓名'] || '未知名字') + '】</span>' +
+                '<span class="npc-panel-race">' + (result['种族'] || '未知种族') + '</span>' +
+                '</div>' +
+                '<div class="npc-panel-stats">' +
+                '<div class="npc-panel-stat-row">' +
+                '<span class="npc-panel-label">饱食度</span>' +
+                '<span class="npc-panel-value-hunger">' + (result['饱食度'] || '???') + '</span>' +
+                '</div>' +
+                '<div class="npc-panel-stat-row">' +
+                '<span class="npc-panel-label">忠诚度</span>' +
+                '<span class="npc-panel-value-loyal">' + (result['忠诚度'] || '???') + '</span>' +
+                '</div>' +
+                '</div>' +
+                '<div class="npc-panel-skills-box">' +
+                '<div class="npc-panel-skills-title">🌿 生存技能</div>' +
+                '<div class="npc-panel-skills-text">' + (result['技能'] || '暂无数据') + '</div>' +
+                '</div>' +
+                '<div class="npc-panel-behavior">' +
+                '<strong>初见行为：</strong>' + (result['行为'] || '没有记录哦') +
+                '</div>' +
+                '</div>';
+
+            return html;
+        }
+
+        /* ========== 综合解析与渲染 ========== */
+        function parseAndRenderAll(text) {
+            var html = '';
+
+            /* 使用正则寻找嵌在正文里的 npc_panel */
+            var npcRegex = /(?:<|&lt;)npc_panel(?:>|&gt;)([\s\S]*?)(?:<|&lt;)\/npc_panel(?:>|&gt;)/g;
+            var lastIndex = 0;
+            var match;
+
+            while ((match = npcRegex.exec(text)) !== null) {
+                /* 1. 渲染卡片前面的普通正文 */
+                var normalText = text.substring(lastIndex, match.index);
+                html += renderNormalText(normalText);
+
+                /* 2. 渲染 NPC 卡片 */
+                var panelContent = match[1];
+                html += renderNpcPanel(panelContent);
+
+                lastIndex = npcRegex.lastIndex;
+            }
+
+            /* 3. 渲染最后剩下的普通正文 */
+            if (lastIndex < text.length) {
+                var remainingText = text.substring(lastIndex);
+                html += renderNormalText(remainingText);
+            }
+
+            document.getElementById('content').innerHTML = html || '<p class="narrative">空空的草地，什么都没有呢。</p>';
+        }
+
+        /* ========== 主函数 ========== */
+        function init() {
+            try {
+                var messageText = getMessageData();
+                if (!messageText) {
+                    document.getElementById('content').innerHTML =
+                        '<div class="error-msg">❌ 找不到消息内容啦。</div>';
+                    return;
+                }
+
+                /* 提取最外层的 story 标签内容 */
+                var text = extractContent(messageText);
+
+                /* 综合渲染 */
+                parseAndRenderAll(text);
+
+            } catch (error) {
+                document.getElementById('content').innerHTML =
+                    '<div class="error-msg">❌ 渲染失败：' + error.message + '</div>';
+            }
+        }
+
+        $(function() { init(); });
+    </script>
+</body>
+</html>
+```
