@@ -5,6 +5,7 @@ import _ from 'lodash';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import { ChildProcess, exec, spawn } from 'node:child_process';
 import fs from 'node:fs';
+import { createServer as createHttpServer } from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import RemarkHTML from 'remark-html';
@@ -21,7 +22,10 @@ const require = createRequire(import.meta.url);
 const HTMLInlineCSSWebpackPlugin = require('html-inline-css-webpack-plugin').default;
 
 interface Config {
+  /** socket.io 热重载端口 (不提供 HTTP 文件服务) */
   port: number;
+  /** 本地静态文件服务端口, 供 $('body').load('http://localhost:5500/dist/...') 使用 */
+  staticPort: number;
   entries: Entry[];
 }
 interface Entry {
@@ -76,16 +80,63 @@ function glob_script_files() {
 
 const config: Config = {
   port: 6621,
+  staticPort: 5500,
   entries: glob_script_files().map(parse_entry),
 };
+
+const STATIC_MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json',
+  '.map': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+};
+
+function watch_static_server() {
+  const port = config.staticPort ?? 5500;
+  const root = import.meta.dirname;
+  createHttpServer(async (req, res) => {
+    try {
+      const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
+      const pathname = decodeURIComponent(url.pathname);
+      const relative_path = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
+      const file_path = path.resolve(root, relative_path.split('/').join(path.sep));
+      if (!file_path.startsWith(root)) {
+        res.writeHead(403);
+        res.end();
+        return;
+      }
+      const content = await fs.promises.readFile(file_path);
+      res.writeHead(200, {
+        'Content-Type': STATIC_MIME_TYPES[path.extname(file_path)] ?? 'application/octet-stream',
+        'Access-Control-Allow-Origin': '*',
+      });
+      res.end(content);
+    } catch {
+      res.writeHead(404);
+      res.end();
+    }
+  }).listen(port, () => {
+    console.info(`\x1b[36m[tavern_helper]\x1b[0m 已启动静态文件服务 http://localhost:${port}`);
+  });
+}
 
 let io: Server;
 function watch_tavern_helper(compiler: webpack.Compiler) {
   if (compiler.options.watch) {
     if (!io) {
+      watch_static_server();
       const port = config.port ?? 6621;
       io = new Server(port, { cors: { origin: '*' } });
-      console.info(`\x1b[36m[tavern_helper]\x1b[0m 已启动酒馆监听服务`);
+      console.info(`\x1b[36m[tavern_helper]\x1b[0m 已启动酒馆热重载服务 (端口 ${port}, 非 HTTP)`);
       io.on('connect', socket => {
         console.info(`\x1b[36m[tavern_helper]\x1b[0m 成功连接到酒馆网页 '${socket.id}', 初始化推送...`);
         io.emit('iframe_updated');
@@ -187,6 +238,13 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
     .readFileSync(path.join(import.meta.dirname, entry.script), 'utf-8')
     .includes('@obfuscate');
   const script_filepath = path.parse(entry.script);
+  const is_side_drawer_entry = script_filepath.dir.replace(/\\/g, '/').includes('状态栏侧栏');
+  const side_drawer_public_url = is_side_drawer_entry
+    ? `http://127.0.0.1:${config.staticPort}/dist/${path
+        .relative(import.meta.dirname, script_filepath.dir)
+        .replace(/^[^\\/]+[\\/]/, '')
+        .replace(/\\/g, '/')}/${script_filepath.name}.js`
+    : '';
 
   return (_env, argv) => ({
     experiments: {
@@ -466,6 +524,9 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
           __VUE_OPTIONS_API__: false,
           __VUE_PROD_DEVTOOLS__: process.env.CI !== 'true',
           __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
+          ...(is_side_drawer_entry
+            ? { __ZHUIXING_DRAWER_BUNDLE_URL__: JSON.stringify(side_drawer_public_url) }
+            : {}),
         }),
       )
       .concat(
@@ -540,8 +601,19 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
       }
 
       if (
+        is_side_drawer_entry &&
+        (request === 'vue' ||
+          request === 'pinia' ||
+          request.startsWith('@vue/') ||
+          request.startsWith('pinia/'))
+      ) {
+        return callback();
+      }
+
+      if (
         ['vue', 'vue-router'].every(key => request !== key) &&
-        ['pixi', 'react', 'vue'].some(key => request.includes(key))
+        !request.startsWith('@vue/') &&
+        ['pixi', 'react', 'pinia'].some(key => request.includes(key))
       ) {
         return callback();
       }
@@ -555,6 +627,9 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
         yaml: 'YAML',
         zod: 'z',
       };
+      if (!is_side_drawer_entry && request.startsWith('@vue/')) {
+        return callback(null, 'var Vue');
+      }
       if (request in global) {
         return callback(null, 'var ' + global[request as keyof typeof global]);
       }
