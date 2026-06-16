@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import { compute_work_efficiency_bonus } from '../util/campVariableSync';
 import { useDataStore } from '../store';
 
 export function useMemberPool() {
@@ -50,14 +50,13 @@ export function useMemberPool() {
 
   function available_named_for_work(work_name: string) {
     const work = store.data.工作队列[work_name];
-    if (!work) return [];
-    const used = assigned_named({ kind: 'work', name: work_name });
-    return _.keys(store.data.具名NPC).filter(n => work.具名指派.includes(n) || !used.has(n));
+    const used = assigned_named(work ? { kind: 'work', name: work_name } : undefined);
+    const current = work?.具名指派 ?? [];
+    return _.keys(store.data.具名NPC).filter(n => current.includes(n) || !used.has(n));
   }
 
   function work_efficiency_bonus(named: number, unnamed: number) {
-    if (named <= 0 && unnamed <= 0) return 0;
-    return _.clamp(named * 12 + unnamed * 6, 0, 80);
+    return compute_work_efficiency_bonus(named, unnamed);
   }
 
   return {

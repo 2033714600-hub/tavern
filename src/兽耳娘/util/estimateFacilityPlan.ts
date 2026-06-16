@@ -84,7 +84,7 @@ const CATEGORY_KEYWORDS: Record<Exclude<FacilityCategory, '通用'>, string[]> =
   居住舒适: ['居住', '舒适', '洗浴', '防风', '避雨', '休息', '清洗', '环境'],
 };
 
-const SCALE_FACTOR: Record<BuildingScale, number> = {
+export const SCALE_FACTOR: Record<BuildingScale, number> = {
   小型: 0.55,
   中型: 1,
   大型: 1.7,
@@ -125,9 +125,14 @@ function scaleRecipe(
 }
 
 /** 根据自定义规划内容估算材料消耗与建造工时（小时） */
-export function estimateFacilityPlan(name: string, desc: string, func: string): FacilityEstimate {
+export function estimateFacilityPlan(
+  name: string,
+  desc: string,
+  func: string,
+  scaleOverride?: BuildingScale,
+): FacilityEstimate {
   const text = `${name} ${desc} ${func}`;
-  const scale = detectScale(text);
+  const scale = scaleOverride ?? detectScale(text);
   const recipe = matchRecipe(text);
 
   if (recipe) {

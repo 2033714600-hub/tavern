@@ -8,11 +8,18 @@
       "properties": {
         "当前时代": {
           "default": "一",
-          "type": "string",
-          "enum": [
-            "一",
-            "二",
-            "三"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "一",
+                "二",
+                "三"
+              ]
+            },
+            {
+              "type": "string"
+            }
           ]
         },
         "当前位置": {
@@ -23,23 +30,37 @@
           "default": "2026年9月1日",
           "type": "string"
         },
+        "生存天数": {
+          "default": 1,
+          "type": "number"
+        },
         "季节": {
           "default": "秋季",
           "type": "string"
         },
         "时间": {
-          "default": "清晨",
+          "default": "傍晚",
           "type": "string"
         },
         "飞船能源": {
           "default": "低功耗",
-          "type": "string",
-          "enum": [
-            "低功耗",
-            "警戒",
-            "耗尽",
-            "分区供电",
-            "恢复供电"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "低功耗",
+                "警戒",
+                "耗尽",
+                "分区供电",
+                "恢复供电"
+              ]
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
           ]
         },
         "当前研发": {
@@ -59,6 +80,17 @@
         "人口": {
           "default": 14,
           "type": "number"
+        },
+        "族人构成": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "description": "种族简称"
+          },
+          "additionalProperties": {
+            "type": "number"
+          }
         },
         "生存指标": {
           "default": {},
@@ -93,22 +125,36 @@
             },
             "营地防御": {
               "default": "极弱",
-              "type": "string",
-              "enum": [
-                "极弱",
-                "初具雏形",
-                "坚不可摧"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "极弱",
+                    "初具雏形",
+                    "坚不可摧"
+                  ]
+                },
+                {
+                  "type": "string"
+                }
               ]
             },
             "住所等级": {
               "default": "露宿",
-              "type": "string",
-              "enum": [
-                "露宿",
-                "简陋窝棚",
-                "稳固聚落",
-                "石砌聚落",
-                "舰城生活区"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "露宿",
+                    "简陋窝棚",
+                    "稳固聚落",
+                    "石砌聚落",
+                    "舰城生活区"
+                  ]
+                },
+                {
+                  "type": "string"
+                }
               ]
             }
           }
@@ -118,7 +164,10 @@
           "type": "number"
         },
         "篝火燃料": {
-          "default": {},
+          "default": {
+            "当前": 0,
+            "上限": 1000
+          },
           "type": "object",
           "properties": {
             "当前": {
@@ -186,6 +235,9 @@
                 "藤蔓": {
                   "default": 12,
                   "type": "number"
+                },
+                "石料": {
+                  "type": "number"
                 }
               }
             }
@@ -201,7 +253,7 @@
         },
         "当前建筑": {
           "default": {
-            "熄灭的火堆": {
+            "简易火塘": {
               "状态": "冰冷",
               "描述": "只剩下灰烬的火塘，急需重新生火",
               "功能": "提供照明与温暖（需重新点燃）",
@@ -240,6 +292,14 @@
                   "蓝图",
                   "建造中",
                   "受损"
+                ]
+              },
+              "建筑大小": {
+                "type": "string",
+                "enum": [
+                  "小型",
+                  "中型",
+                  "大型"
                 ]
               },
               "所需材料": {
@@ -368,11 +428,56 @@
               "主要",
               "次要"
             ]
+          },
+          "剩余时间": {
+            "default": "",
+            "type": "string"
+          },
+          "逃离原因": {
+            "default": "",
+            "type": "string"
           }
         },
         "required": [
           "说明"
         ]
+      }
+    },
+    "综合事物": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "事项名称"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "说明": {
+            "default": "",
+            "type": "string"
+          },
+          "状态": {
+            "default": "进行中",
+            "type": "string",
+            "enum": [
+              "进行中",
+              "待定",
+              "已完成"
+            ]
+          },
+          "具名参与": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "来源": {
+            "default": "",
+            "type": "string"
+          }
+        }
       }
     },
     "探索编队": {
@@ -391,7 +496,8 @@
             "enum": [
               "待命",
               "探索中",
-              "采集中"
+              "采集中",
+              "狩猎中"
             ]
           },
           "具名成员": {
@@ -412,12 +518,29 @@
           "目标区域": {
             "default": "",
             "type": "string"
+          },
+          "出行背包": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "number"
+            }
           }
         }
       }
     },
     "探索区域": {
       "default": {
+        "乱石滩营地": {
+          "描述": "坠星盆地边缘的流浪猫耳部族临时营地，简易火塘常熄灭，食水紧缺。",
+          "路程": "即刻",
+          "危险度": "低",
+          "已掌握": true,
+          "探索度": 70
+        },
         "飞船残骸周边": {
           "描述": "熟悉的营地区域，可采集枯枝与残骸金属碎片。",
           "路程": "即刻",
@@ -442,9 +565,11 @@
         "type": "object",
         "properties": {
           "描述": {
+            "default": "",
             "type": "string"
           },
           "路程": {
+            "default": "即刻",
             "type": "string"
           },
           "危险度": {
@@ -459,11 +584,7 @@
             "default": 0,
             "type": "number"
           }
-        },
-        "required": [
-          "描述",
-          "路程"
-        ]
+        }
       }
     },
     "大地见闻": {
@@ -521,9 +642,10 @@
             "type": "number"
           },
           "状态": {
-            "default": "进行中",
+            "default": "待指派",
             "type": "string",
             "enum": [
+              "待指派",
               "进行中",
               "暂停",
               "已停止",
@@ -563,6 +685,39 @@
         ]
       }
     },
+    "幼崽": {
+      "default": {},
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "description": "幼崽名字"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "母亲": {
+            "default": "",
+            "type": "string"
+          },
+          "种族": {
+            "default": "",
+            "type": "string"
+          },
+          "年龄": {
+            "default": 0,
+            "type": "number"
+          },
+          "状态": {
+            "default": "健康",
+            "type": "string"
+          },
+          "生长状态": {
+            "default": "",
+            "type": "string"
+          }
+        }
+      }
+    },
     "具名NPC": {
       "default": {},
       "type": "object",
@@ -581,6 +736,26 @@
             "default": "",
             "type": "string"
           },
+          "档位": {
+            "default": "初学",
+            "$ref": "#/$defs/__schema0"
+          },
+          "孕期": {
+            "default": "未孕",
+            "type": "string",
+            "enum": [
+              "未孕",
+              "受孕",
+              "早孕",
+              "安胎",
+              "临盆",
+              "哺乳"
+            ]
+          },
+          "受孕日": {
+            "default": 0,
+            "type": "number"
+          },
           "忠诚度": {
             "default": 0,
             "type": "number"
@@ -595,7 +770,7 @@
           },
           "心情": {
             "default": "平静",
-            "type": "string"
+            "$ref": "#/$defs/__schema1"
           },
           "状态": {
             "default": "正常",
@@ -610,7 +785,7 @@
             "type": "string"
           },
           "当前想法": {
-            "default": "无",
+            "default": "",
             "type": "string"
           },
           "饱食度": {
@@ -619,12 +794,19 @@
           },
           "种族系": {
             "default": "未知",
-            "type": "string",
-            "enum": [
-              "食草",
-              "食肉",
-              "杂食",
-              "未知"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "食草",
+                  "食肉",
+                  "杂食",
+                  "未知"
+                ]
+              },
+              {
+                "type": "string"
+              }
             ]
           },
           "互动状态": {
@@ -688,13 +870,17 @@
             "default": "",
             "type": "string"
           },
+          "档位": {
+            "default": "初学",
+            "$ref": "#/$defs/__schema0"
+          },
           "好感度": {
             "default": 50,
             "type": "number"
           },
           "心情": {
             "default": "平静",
-            "type": "string"
+            "$ref": "#/$defs/__schema1"
           },
           "状态": {
             "default": "正常",
@@ -786,6 +972,34 @@
           }
         }
       }
+    }
+  },
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "初学",
+            "入门",
+            "熟练",
+            "精通"
+          ]
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "__schema1": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        }
+      ]
     }
   }
 }

@@ -50,6 +50,7 @@ body {
 .status-card {
   width: 100%;
   max-width: 100%;
+  padding-top: 10px;
   background: #eaddc5;
   background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
   border-radius: 20px;
@@ -329,6 +330,22 @@ body {
   margin-bottom: 4px;
 }
 
+.affair-deadline {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #c45c4a;
+  margin-bottom: 2px;
+}
+
+.affair-reason {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #8b6914;
+  margin-bottom: 4px;
+}
+
 .affair-desc {
   display: block;
   font-size: 0.85rem;
@@ -394,13 +411,14 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 1050;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
   background: rgba(58, 45, 36, 0.6);
   backdrop-filter: blur(4px);
+  pointer-events: auto;
 }
 
 .modal-panel {

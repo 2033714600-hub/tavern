@@ -52,7 +52,7 @@
           返回路线
         </button>
         <button class="enter-btn custom-enter-btn" type="button" :disabled="saving" @click="on_enter">
-          {{ saving ? '正在生成开局……' : '进入部落' }}
+          {{ saving ? saving_hint : '进入部落' }}
           <ChevronRight :size="18" :stroke-width="2.5" />
         </button>
       </div>
@@ -73,15 +73,21 @@ import {
   type CustomStartNotes,
   type CustomStartSelections,
 } from '../constants/customStartOptions';
-import { generate_custom_opening } from '../util/customStartGenerate';
+import { generate_custom_opening, wait_for_opening_npcs } from '../util/openingGenerate';
+import { useGameFlow } from '../composables/useGameFlow';
+import { useSideDrawer } from '../composables/useSideDrawer';
 
-const emit = defineEmits<{ back: []; enter: [] }>();
+const { open_drawer, unlock_drawer } = useSideDrawer();
+const { enter_game } = useGameFlow();
+
+const emit = defineEmits<{ back: [] }>();
 
 const sections = CUSTOM_START_SECTIONS;
 const selections = reactive<CustomStartSelections>({ ...DEFAULT_CUSTOM_SELECTIONS });
 const custom_notes = reactive<CustomStartNotes>(create_default_custom_notes());
 const card_ref = ref<HTMLElement | null>(null);
 const saving = ref(false);
+const saving_hint = ref('正在生成开局……');
 const error = ref('');
 
 function select_option(section_id: string, option_id: string) {
@@ -109,19 +115,29 @@ async function on_enter() {
   }
 
   saving.value = true;
+  saving_hint.value = '正在生成开局……';
   error.value = '';
   try {
     await generate_custom_opening({ ...selections }, { ...custom_notes });
-    const card = card_ref.value;
-    if (card) {
-      await gsap.to(card, { opacity: 0, y: 10, duration: 0.3, ease: 'power2.in' });
+    saving_hint.value = '正在等待族人入营……';
+    const npc_ready = await wait_for_opening_npcs();
+    enter_game();
+    unlock_drawer();
+    open_drawer();
+    if (!npc_ready) {
+      const warn =
+        '开局正文已生成，但具名NPC 尚未写入变量。请检查 AI 回复是否在 <story> 内用 <npc_panel> 包裹 NPC 块，或点击「重新处理变量」后重试。';
+      error.value = warn;
+      toastr.warning(warn);
     }
-    emit('enter');
   } catch (e) {
+    unlock_drawer();
+    open_drawer();
     error.value = e instanceof Error ? e.message : '写入世界书失败，请稍后重试';
     toastr.error(error.value);
   } finally {
     saving.value = false;
+    saving_hint.value = '正在生成开局……';
   }
 }
 

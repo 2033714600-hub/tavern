@@ -2,7 +2,7 @@
   <div class="status-info">
     <div class="date-line">
       <Calendar :size="20" :stroke-width="2.25" />
-      <span class="date-text">{{ store.data.世界.星历 }}</span>
+      <span class="date-text">{{ beast_calendar }}</span>
     </div>
     <div class="chief-block">
       <label class="chief-avatar-label group">
@@ -21,6 +21,7 @@
 
 <script setup lang="ts">
 import { Calendar, Footprints } from 'lucide-vue-next';
+import { format_beast_calendar } from '../util/beastCalendar';
 import { read_image_file, useUiStore } from '../composables/useUiStore';
 import { useTavernUser } from '../composables/useTavernUser';
 import { useDataStore } from '../store';
@@ -28,6 +29,7 @@ import { useDataStore } from '../store';
 const store = useDataStore();
 const { user_name } = useTavernUser();
 const { ui, set_chief_avatar } = useUiStore();
+const beast_calendar = computed(() => format_beast_calendar(store.data.世界.星历));
 
 async function onChiefAvatar(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0];

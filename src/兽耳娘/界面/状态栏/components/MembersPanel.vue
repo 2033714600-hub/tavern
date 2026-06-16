@@ -1,12 +1,5 @@
 <template>
   <div class="panel-page">
-    <PanelTitle>
-      <template #icon>
-        <Footprints class="title-icon green" :size="32" :stroke-width="2.25" />
-      </template>
-      兽耳娘
-    </PanelTitle>
-
     <div class="member-sub-tabs">
       <button
         class="sub-tab"
@@ -17,6 +10,14 @@
         营地
       </button>
       <button
+        class="sub-tab cubs-tab"
+        :class="{ active: member_tab === 'cubs' }"
+        type="button"
+        @click="member_tab = 'cubs'"
+      >
+        幼崽
+      </button>
+      <button
         class="sub-tab"
         :class="{ active: member_tab === 'unrecruited' }"
         type="button"
@@ -24,6 +25,11 @@
       >
         未收入
       </button>
+    </div>
+
+    <div v-if="member_tab === 'cubs'" class="cub-rule-banner">
+      <p class="cub-rule-label">团宠守则</p>
+      <p class="cub-rule-text">{{ formatUserText(CUB_GROUP_PET_RULE) }}</p>
     </div>
 
     <div v-if="list_empty" class="empty-hint">{{ empty_hint }}</div>
@@ -48,16 +54,29 @@
             <span class="sidebar-name">{{ name }}</span>
             <span v-if="sidebar_npc(name)?.种族" class="sidebar-race">{{ sidebar_npc(name)?.种族 }}</span>
             <div v-if="member_tab === 'camp' && camp_npc(name)" class="sidebar-stats">
-              <span class="loyal" title="忠诚度">
-                <Heart :size="14" /> {{ loyalty_display(camp_npc(name)!.忠诚度) }}
+              <span class="loyal" title="忠诚度（-100~100）">
+                <Heart :size="14" />
+                <span class="stat-label">忠诚</span>
+                {{ camp_npc(name)!.忠诚度 }}
               </span>
               <span class="mood" title="好感度">
-                <Smile :size="14" /> {{ camp_npc(name)!.好感度 }}
+                <Smile :size="14" />
+                <span class="stat-label">好感</span>
+                {{ camp_npc(name)!.好感度 }}
               </span>
+            </div>
+            <div v-else-if="member_tab === 'cubs' && cub_entry(name)" class="sidebar-stats cubs-sidebar-stats">
+              <span class="cub-mother" title="母亲">
+                <Heart :size="14" />
+                {{ cub_entry(name)!.母亲 || '未知' }}
+              </span>
+              <span class="cub-age" title="年龄（生存天数）">{{ cub_age_label(cub_entry(name)!) }}</span>
             </div>
             <div v-else-if="member_tab === 'unrecruited' && unrecruited_npc(name)" class="sidebar-stats">
               <span class="mood" title="好感度">
-                <Smile :size="14" /> {{ unrecruited_npc(name)!.好感度 }}
+                <Smile :size="14" />
+                <span class="stat-label">好感</span>
+                {{ unrecruited_npc(name)!.好感度 }}
               </span>
             </div>
           </div>
@@ -89,16 +108,31 @@
               {{ selected_name }}
               <span v-if="selected_camp_npc.种族" class="npc-race">{{ selected_camp_npc.种族 }}</span>
             </h3>
-            <p v-if="selected_camp_npc.职务" class="npc-role">{{ selected_camp_npc.职务 }}</p>
+            <div class="npc-role-row">
+              <p v-if="selected_camp_npc.职务" class="npc-role">{{ selected_camp_npc.职务 }}</p>
+              <span
+                class="npc-grade"
+                :class="npc_grade_class(resolve_npc_grade(selected_camp_npc.档位, selected_camp_npc.技能))"
+              >
+                {{ resolve_npc_grade(selected_camp_npc.档位, selected_camp_npc.技能) }}
+              </span>
+              <p v-if="pregnancy_label(selected_camp_npc)" class="npc-pregnancy">{{ pregnancy_label(selected_camp_npc) }}</p>
+            </div>
             <div class="npc-stats">
-              <span class="loyal" title="忠诚度">
-                <Heart :size="16" /> {{ loyalty_display(selected_camp_npc.忠诚度) }}/100
+              <span class="loyal" title="忠诚度（-100~100）">
+                <Heart :size="16" />
+                <span class="stat-label">忠诚</span>
+                {{ selected_camp_npc.忠诚度 }}
               </span>
               <span class="mood" title="好感度">
-                <Smile :size="16" /> {{ selected_camp_npc.好感度 }}/100
+                <Smile :size="16" />
+                <span class="stat-label">好感</span>
+                {{ selected_camp_npc.好感度 }}/100
               </span>
               <span class="stamina" title="体力">
-                <Zap :size="16" /> {{ selected_camp_npc.体力 }}/100
+                <Zap :size="16" />
+                <span class="stat-label">体力</span>
+                {{ selected_camp_npc.体力 }}/100
               </span>
             </div>
           </div>
@@ -134,14 +168,64 @@
         </div>
 
         <div class="thought-box">
+          <p class="thought-box-label">剧情心里话</p>
           <MessageCircle :size="20" class="thought-bubble" />
-          <p>"{{ formatUserText(selected_camp_npc.当前想法) }}"</p>
+          <p class="thought-text">"{{ plot_thought_text(selected_camp_npc.当前想法) }}"</p>
         </div>
 
         <button class="tribal-button interact-btn" type="button" @click="openInteract(selected_name)">
           <PawPrint :size="18" />
           与兽耳娘互动
         </button>
+      </main>
+
+      <main v-else-if="member_tab === 'cubs' && selected_cub" class="member-detail scroll-area cubs-detail">
+        <div class="detail-head">
+          <div class="cub-avatar-placeholder">
+            <Baby :size="48" class="cub-avatar-icon" />
+            <span class="avatar-letter lg">{{ selected_name.charAt(0) }}</span>
+          </div>
+          <div class="detail-meta">
+            <h3 class="npc-name cubs-name">
+              {{ selected_name }}
+              <span v-if="selected_cub.种族" class="npc-race cub-race">{{ selected_cub.种族 }}</span>
+            </h3>
+            <p class="npc-role cub-tag">营地共同的希望</p>
+            <div class="npc-stats">
+              <span class="cub-stat-pink" title="母亲">
+                <Heart :size="16" />
+                <span class="stat-label">母亲</span>
+                {{ selected_cub.母亲 || '未记录' }}
+              </span>
+              <span class="cub-stat-pink" title="年龄">
+                <Calendar :size="16" />
+                <span class="stat-label">年龄</span>
+                {{ cub_age_label(selected_cub) }}
+              </span>
+              <span class="cub-stat-pink" title="健康状态">
+                <Activity :size="16" />
+                <span class="stat-label">状态</span>
+                {{ selected_cub.状态 || '健康' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="npc-info">
+          <div class="info-line">
+            <MapPin :size="18" class="info-icon" />
+            <span>火塘边 / 窝棚内（全营地共育看护）</span>
+          </div>
+          <div class="info-line">
+            <Baby :size="18" class="info-icon cubs-icon" />
+            <span>{{ cub_growth_hint(selected_cub.年龄) }}</span>
+          </div>
+        </div>
+
+        <div class="cub-growth-box">
+          <p class="cub-growth-label">生长状态</p>
+          <p class="cub-growth-text">{{ cub_growth_status_text(selected_cub) }}</p>
+        </div>
       </main>
 
       <main v-else-if="member_tab === 'unrecruited' && selected_unrecruited_npc" class="member-detail scroll-area">
@@ -163,10 +247,20 @@
               {{ selected_name }}
               <span v-if="selected_unrecruited_npc.种族" class="npc-race">{{ selected_unrecruited_npc.种族 }}</span>
             </h3>
-            <p class="npc-role muted">尚未加入营地</p>
+            <div class="npc-role-row">
+              <p class="npc-role muted">尚未加入营地</p>
+              <span
+                class="npc-grade"
+                :class="npc_grade_class(resolve_npc_grade(selected_unrecruited_npc.档位, selected_unrecruited_npc.技能))"
+              >
+                {{ resolve_npc_grade(selected_unrecruited_npc.档位, selected_unrecruited_npc.技能) }}
+              </span>
+            </div>
             <div class="npc-stats">
               <span class="mood" title="好感度">
-                <Smile :size="16" /> {{ selected_unrecruited_npc.好感度 }}/100
+                <Smile :size="16" />
+                <span class="stat-label">好感</span>
+                {{ selected_unrecruited_npc.好感度 }}/100
               </span>
             </div>
           </div>
@@ -198,8 +292,9 @@
         </div>
 
         <div class="thought-box">
+          <p class="thought-box-label">剧情心里话</p>
           <MessageCircle :size="20" class="thought-bubble" />
-          <p>"{{ formatUserText(selected_unrecruited_npc.当前想法) }}"</p>
+          <p class="thought-text">"{{ plot_thought_text(selected_unrecruited_npc.当前想法) }}"</p>
         </div>
 
         <button class="tribal-button interact-btn" type="button" @click="inviteMember(selected_name)">
@@ -234,15 +329,16 @@
             <div class="gaze-box">
               <div class="gaze-row">
                 <span class="gaze-label">动作</span>
-                <span class="gaze-text">{{ gaze_text(active_npc.对视时?.动作, gaze_fallback.动作) }}</span>
+                <span class="gaze-text">{{ gaze_field_text(active_npc?.对视时?.动作, active_npc) }}</span>
               </div>
               <div class="gaze-row">
                 <span class="gaze-label">表情</span>
-                <span class="gaze-text">{{ gaze_text(active_npc.对视时?.表情, gaze_fallback.表情) }}</span>
+                <span class="gaze-text">{{ gaze_field_text(active_npc?.对视时?.表情, active_npc) }}</span>
               </div>
               <div class="gaze-thought">
+                <span class="gaze-thought-label">注视心声</span>
                 <span class="gaze-quote-mark">"</span>
-                <p>{{ gaze_text(active_npc.对视时?.心里话, gaze_fallback.心里话) }}</p>
+                <p>{{ gaze_thought_text(active_npc) }}</p>
                 <span class="gaze-quote-mark end">"</span>
               </div>
             </div>
@@ -250,7 +346,7 @@
               <button class="tribal-button" type="button" @click="doInteract('梳毛')">梳毛</button>
               <button class="tribal-button-alt" type="button" @click="doInteract('抱抱')">抱抱</button>
               <button class="tribal-button-belly" type="button" @click="doInteract('摸肚皮')">摸肚皮</button>
-              <button class="tribal-button" type="button" @click="doInteract('投喂')">投喂</button>
+              <button class="tribal-button" type="button" @click="openFeedModal">投喂</button>
               <button class="breed-btn" type="button" @click="doInteract('请求繁衍')">
                 <span class="heart-badge">
                   <Heart class="heart-icon" :size="18" fill="currentColor" :stroke-width="2" />
@@ -262,6 +358,31 @@
         </div>
       </div>
     </div>
+
+    <div v-if="show_feed_modal" class="modal-overlay feed-overlay" @click.self="show_feed_modal = false">
+      <div class="parchment-panel modal-panel feed-modal">
+        <ModalClose @click="show_feed_modal = false" />
+        <div class="modal-head">
+          <Package :size="28" class="accent green" />
+          <h3>选择食物</h3>
+        </div>
+        <p class="feed-hint">从部落储物仓选取食物，投喂给 {{ active_name }}</p>
+        <div v-if="feed_items.length === 0" class="empty-hint">储物仓里没有可投喂的食物</div>
+        <div v-else class="feed-list">
+          <button
+            v-for="item in feed_items"
+            :key="item.name"
+            class="feed-item-btn"
+            type="button"
+            @click="confirmFeed(item.name)"
+          >
+            <span class="feed-item-name">{{ item.name }}</span>
+            <span class="feed-item-meta">×{{ item.qty }}</span>
+            <span v-if="item.desc" class="feed-item-desc">{{ item.desc }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -269,7 +390,9 @@
 import _ from 'lodash';
 import {
   Activity,
+  Baby,
   Bone,
+  Calendar,
   Footprints,
   Heart,
   LogOut,
@@ -285,30 +408,45 @@ import {
 } from 'lucide-vue-next';
 import type { Schema } from '../../../schema';
 import { CORE_NPC_SKILLS } from '../../../constants/coreNpcSkills';
+import { pregnancy_display_label } from '../constants/pregnancy';
 import {
   SKILL_KEYS,
   skill_bonus_hint,
   type SkillKey,
 } from '../constants/npcSkills';
-import { sendUserAction } from '../composables/useGameActions';
+import { useConfirm } from '../composables/useConfirm';
+import { runUserAction } from '../composables/useGameActions';
 import { useTavernUser } from '../composables/useTavernUser';
 import { read_image_file, useUiStore } from '../composables/useUiStore';
 import { useDataStore } from '../store';
+import {
+  CUB_GROUP_PET_RULE,
+  cubGrowthStatus,
+  cubRaceMatchesMother,
+  inferCubRaceFromMother,
+} from '../util/cubGrowth';
+import { expel_named_npc } from '../util/campVariableSync';
+import { format_beast_calendar } from '../util/beastCalendar';
+import { listFeedableWarehouseItems } from '../util/feedFood';
+import { npc_grade_class, resolve_npc_grade } from '../util/npcGrade';
 import ModalClose from './ModalClose.vue';
-import PanelTitle from './PanelTitle.vue';
 
 const store = useDataStore();
+const { confirm } = useConfirm();
 const { user_name } = useTavernUser();
 const { get_member_avatar, set_member_avatar } = useUiStore();
 
 const NAMED_ORDER = ['林', '白', '春', '菊'] as const;
 
-type MemberTab = 'camp' | 'unrecruited';
+type MemberTab = 'camp' | 'cubs' | 'unrecruited';
 
 const member_tab = ref<MemberTab>('camp');
 const selected_name = ref('');
 const show_interact = ref(false);
+const show_feed_modal = ref(false);
 const active_name = ref('');
+
+const feed_items = computed(() => listFeedableWarehouseItems(store.data.营地.物品栏));
 
 function sort_npc_names(names: string[]) {
   return [...names].sort((a, b) => {
@@ -321,17 +459,27 @@ function sort_npc_names(names: string[]) {
   });
 }
 
-const sorted_names = computed(() =>
-  member_tab.value === 'camp'
-    ? sort_npc_names(_.keys(store.data.具名NPC))
-    : sort_npc_names(_.keys(store.data.未收入兽耳娘)),
-);
+const sorted_names = computed(() => {
+  if (member_tab.value === 'camp') {
+    return sort_npc_names(_.keys(store.data.具名NPC));
+  }
+  if (member_tab.value === 'cubs') {
+    return sort_cub_names(_.keys(store.data.幼崽));
+  }
+  return sort_npc_names(_.keys(store.data.未收入兽耳娘));
+});
 
 const list_empty = computed(() => sorted_names.value.length === 0);
 
-const empty_hint = computed(() =>
-  member_tab.value === 'camp' ? '营地里还没有其他人呢' : '还没有遇到未收入的兽耳娘',
-);
+const empty_hint = computed(() => {
+  if (member_tab.value === 'camp') {
+    return '营地里还没有其他人呢';
+  }
+  if (member_tab.value === 'cubs') {
+    return '还没有幼崽呢';
+  }
+  return '还没有遇到未收入的兽耳娘';
+});
 
 const selected_camp_npc = computed(() =>
   selected_name.value ? store.data.具名NPC[selected_name.value] : null,
@@ -340,6 +488,8 @@ const selected_camp_npc = computed(() =>
 const selected_unrecruited_npc = computed(() =>
   selected_name.value ? store.data.未收入兽耳娘[selected_name.value] : null,
 );
+
+const selected_cub = computed(() => (selected_name.value ? store.data.幼崽[selected_name.value] : null));
 
 const active_npc = computed(() =>
   active_name.value ? store.data.具名NPC[active_name.value] : null,
@@ -353,15 +503,73 @@ function unrecruited_npc(name: string) {
   return store.data.未收入兽耳娘[name];
 }
 
-function sidebar_npc(name: string) {
-  return member_tab.value === 'camp' ? camp_npc(name) : unrecruited_npc(name);
+function cub_entry(name: string) {
+  return store.data.幼崽[name];
 }
 
-const gaze_fallback = {
-  动作: '与{{user}}对视时，她正安静地注视着你',
-  表情: '眼神中带着期待与好奇',
-  心里话: '她正用充满期待的眼神看着你呢～',
-};
+function sort_cub_names(names: string[]) {
+  return [...names].sort((a, b) => {
+    const age_a = store.data.幼崽[a]?.年龄 ?? 0;
+    const age_b = store.data.幼崽[b]?.年龄 ?? 0;
+    if (age_a !== age_b) {
+      return age_b - age_a;
+    }
+    return a.localeCompare(b, 'zh');
+  });
+}
+
+function cub_age_label(cub: Schema['幼崽'][string]) {
+  const days = cub.年龄 ?? 0;
+  if (days <= 0) {
+    return '新生';
+  }
+  if (days < 30) {
+    return `${days}天`;
+  }
+  if (days < 365) {
+    return `约${Math.floor(days / 30)}月`;
+  }
+  const years = Math.floor(days / 365);
+  return `约${years}岁`;
+}
+
+function cub_growth_hint(age_days: number) {
+  if (age_days < 365) {
+    return '异星血脉加速生长：约3年可达人类10岁体格与智力';
+  }
+  if (age_days < 365 * 12) {
+    return '正处于快速成长期，全营地共同教导生存技能';
+  }
+  return '已接近成熟期，体格与智力远超纯血原住民同龄者';
+}
+
+function cub_growth_status_text(cub: Schema['幼崽'][string]) {
+  return formatUserText(cubGrowthStatus(cub, store.data.世界.生存天数));
+}
+
+function sync_cub_races() {
+  for (const [name, cub] of _.toPairs(store.data.幼崽)) {
+    const mother = cub.母亲?.trim();
+    if (!mother) continue;
+    const expected = inferCubRaceFromMother(mother, store.data.具名NPC);
+    if (!expected) continue;
+    if (!cubRaceMatchesMother(cub.种族, mother, store.data.具名NPC)) {
+      cub.种族 = expected;
+    }
+  }
+}
+
+watch(() => [store.data.幼崽, store.data.具名NPC], sync_cub_races, { deep: true, immediate: true });
+
+function sidebar_npc(name: string) {
+  if (member_tab.value === 'camp') {
+    return camp_npc(name);
+  }
+  if (member_tab.value === 'cubs') {
+    return cub_entry(name);
+  }
+  return unrecruited_npc(name);
+}
 
 watch(
   [member_tab, sorted_names],
@@ -376,10 +584,6 @@ watch(
   },
   { immediate: true },
 );
-
-function loyalty_display(loyalty: number) {
-  return _.clamp(Math.round((loyalty + 100) / 2), 0, 100);
-}
 
 type NpcWithSkills = { 技能?: Schema['具名NPC'][string]['技能'] };
 
@@ -400,9 +604,45 @@ function formatUserText(text: string) {
   return text.replace(/<user>/gi, user_name.value).replace(/\{\{user\}\}/gi, user_name.value);
 }
 
-function gaze_text(text: string | undefined, fallback: string) {
-  const raw = (text?.trim() || fallback).trim();
-  return formatUserText(raw);
+/** 对视心声应为第二人称「你」，纠正 AI 误写的第三人称指玩家 */
+function normalizeGazeVoice(text: string) {
+  let t = formatUserText(text);
+  t = t.replace(/(?<![这那哪对向跟和与把被让给])他(?=[要会想想怎为是在还么])/g, '你');
+  t = t.replace(/(?<![这那哪对向跟和与把被让给])她(?=[要会想想怎为是在还么])/g, '你');
+  return t;
+}
+
+function pregnancy_label(npc: Schema['具名NPC'][string] | null) {
+  return pregnancy_display_label(npc?.孕期);
+}
+
+/** 详情页：当前剧情中的内心独白（【当前想法】） */
+function plot_thought_text(thought: string | undefined) {
+  const t = thought?.trim();
+  if (!t || t === '无') {
+    return '暂无记录——请由 AI 在剧情推进时写入【当前想法】';
+  }
+  return formatUserText(t);
+}
+
+/** 互动页：时间暂停态，读取【对视时】（与【当前想法】成对由 AI 写入） */
+function gaze_thought_text(npc: Schema['具名NPC'][string] | null) {
+  const t = npc?.对视时?.心里话?.trim();
+  if (!t) {
+    return '暂无记录——须与【当前想法】一同由 AI 在正文输出时写入【对视时.心里话】';
+  }
+  return normalizeGazeVoice(t);
+}
+
+function gaze_field_text(text: string | undefined, npc: Schema['具名NPC'][string] | null) {
+  const t = text?.trim();
+  if (t) {
+    return normalizeGazeVoice(t);
+  }
+  if (npc?.对视时?.心里话?.trim()) {
+    return '（未写入）';
+  }
+  return '（暂无）';
 }
 
 async function onMemberAvatar(name: string, e: Event) {
@@ -418,25 +658,60 @@ function openInteract(name: string) {
 
 function closeInteract() {
   show_interact.value = false;
+  show_feed_modal.value = false;
+}
+
+function openFeedModal() {
+  if (!feed_items.value.length) {
+    toastr.warning('储物仓里没有可投喂的食物');
+    return;
+  }
+  show_feed_modal.value = true;
+}
+
+async function confirmFeed(foodName: string) {
+  await runUserAction(`[与${active_name.value}互动] 投喂·${foodName}`, () => {
+    const item = store.data.营地.物品栏[foodName];
+    if (!item || item.数量 <= 0) {
+      return;
+    }
+    item.数量 -= 1;
+    if (item.数量 <= 0) {
+      delete store.data.营地.物品栏[foodName];
+    }
+  });
+  show_feed_modal.value = false;
+  closeInteract();
 }
 
 async function doInteract(action: string) {
-  await sendUserAction(`[与${active_name.value}互动] ${action}`);
+  await runUserAction(`[与${active_name.value}互动] ${action}`, () => {});
   closeInteract();
 }
 
 async function expelMember(name: string) {
-  await sendUserAction(`[驱逐族人] ${name}`);
-  delete store.data.具名NPC[name];
+  const ok = await confirm({
+    title: '驱逐族人',
+    message: `确定将「${name}」驱逐出部落吗？\n此操作不可轻易撤销，其好感与忠诚将归零。`,
+    confirmText: '确认驱逐',
+    danger: true,
+  });
+  if (!ok) return;
+  await runUserAction(`[驱逐族人] ${name}`, () => {
+    if (!expel_named_npc(store.data, name)) {
+      toastr.error('未找到该族人');
+    }
+  });
 }
 
 async function inviteMember(name: string) {
-  await sendUserAction(`[邀请${name}入营]`);
+  await runUserAction(`[邀请${name}入营]`, () => {});
 }
 </script>
 
 <style lang="scss" scoped>
 .panel-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -477,6 +752,130 @@ async function inviteMember(name: string) {
     border-color: #7ca982;
     color: #4a6b4f;
   }
+
+  &.cubs-tab {
+    color: #d46d8f;
+
+    &:hover {
+      border-color: #e8a0b8;
+    }
+
+    &.active {
+      background: #fce8ef;
+      border-color: #e8789a;
+      color: #c94d73;
+    }
+  }
+}
+
+.cubs-sidebar-stats {
+  color: #d46d8f;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.cub-mother,
+.cub-age {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cubs-name {
+  color: #c94d73;
+}
+
+.cub-race {
+  background: #fce8ef;
+  border-color: #e8a0b8;
+  color: #b84a6a;
+}
+
+.cub-tag {
+  color: #e8789a !important;
+}
+
+.cub-stat-pink {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #e8789a;
+}
+
+.cub-avatar-placeholder {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 4px solid #e8789a;
+  background: #fce8ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+
+  .cub-avatar-icon {
+    position: absolute;
+    color: #f0b8c8;
+    opacity: 0.55;
+  }
+
+  .avatar-letter {
+    z-index: 1;
+    color: #c94d73;
+  }
+}
+
+.cubs-icon {
+  color: #e8789a;
+}
+
+.cub-rule-banner {
+  margin: -8px 0 4px;
+  padding: 12px 14px;
+  border: 2px dashed #e8a0b8;
+  border-radius: 14px;
+  background: #fff8fa;
+}
+
+.cub-rule-label {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #e8789a;
+  letter-spacing: 0.06em;
+}
+
+.cub-rule-text {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #8c5a6a;
+  line-height: 1.55;
+}
+
+.cub-growth-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 2px dashed #e8a0b8;
+  border-radius: 14px;
+  background: #fff8fa;
+}
+
+.cub-growth-label {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #e8789a;
+  letter-spacing: 0.06em;
+}
+
+.cub-growth-text {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #8c5a6a;
+  line-height: 1.55;
 }
 
 .readonly-avatar {
@@ -777,11 +1176,58 @@ async function inviteMember(name: string) {
   border: 1px solid #d4c2a4;
 }
 
+.npc-role-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 .npc-role {
-  margin: 4px 0 0;
+  margin: 0;
   font-size: 0.82rem;
   font-weight: 700;
   color: #8c7462;
+}
+
+.npc-grade {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  border: 1.5px solid currentColor;
+}
+
+.npc-grade.grade-beginner {
+  color: #2e7d32;
+  background: rgba(76, 175, 80, 0.12);
+}
+
+.npc-grade.grade-entry {
+  color: #1565c0;
+  background: rgba(33, 150, 243, 0.12);
+}
+
+.npc-grade.grade-skilled {
+  color: #c62828;
+  background: rgba(229, 57, 53, 0.12);
+}
+
+.npc-grade.grade-master {
+  color: #f57f17;
+  background: rgba(249, 168, 37, 0.16);
+}
+
+.npc-pregnancy {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #e8789a;
+  letter-spacing: 0.04em;
 }
 
 .npc-stats {
@@ -809,6 +1255,13 @@ async function inviteMember(name: string) {
 
 .stamina {
   color: #c8955c;
+}
+
+.stat-label {
+  font-size: 0.72em;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  opacity: 0.92;
 }
 
 .npc-info {
@@ -842,20 +1295,29 @@ async function inviteMember(name: string) {
 .thought-box {
   margin-top: 16px;
   background: #fcf8f0;
-  padding: 16px;
+  padding: 20px 16px 16px;
   border-radius: 12px;
   border: 1px solid #dcd1be;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
   position: relative;
+}
 
-  p {
-    margin: 0;
-    padding-left: 8px;
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: #5c4738;
-    line-height: 1.55;
-  }
+.thought-box-label {
+  margin: 0 0 8px;
+  padding-left: 8px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  color: #c8955c;
+  letter-spacing: 0.08em;
+}
+
+.thought-text {
+  margin: 0;
+  padding-left: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #5c4738;
+  line-height: 1.55;
 }
 
 .thought-bubble {
@@ -986,6 +1448,15 @@ async function inviteMember(name: string) {
   min-width: 0;
 }
 
+.gaze-thought-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.66rem;
+  font-weight: 900;
+  color: #c8955c;
+  letter-spacing: 0.06em;
+}
+
 .gaze-thought {
   position: relative;
   margin-top: 12px;
@@ -1089,6 +1560,69 @@ async function inviteMember(name: string) {
   color: #8c7462;
   font-weight: 700;
   padding: 20px;
+}
+
+.feed-overlay {
+  z-index: 350;
+}
+
+.feed-modal {
+  width: min(100%, 380px);
+  padding: 20px;
+}
+
+.feed-hint {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: #6b8f71;
+  font-weight: 700;
+  text-align: center;
+}
+
+.feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.feed-item-btn {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  border: 2px solid #d4c4a8;
+  border-radius: 12px;
+  background: #fcf8f0;
+  color: #5c4738;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: #7ca982;
+    background: #f4faf4;
+  }
+}
+
+.feed-item-name {
+  font-weight: 900;
+  font-size: 0.95rem;
+}
+
+.feed-item-meta {
+  font-weight: 800;
+  color: #6b8f71;
+}
+
+.feed-item-desc {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  color: #8c7462;
+  line-height: 1.4;
 }
 
 @media (max-width: 560px) {

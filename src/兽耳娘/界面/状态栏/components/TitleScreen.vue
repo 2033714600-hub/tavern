@@ -26,6 +26,15 @@
 
       <p ref="tagline_ref" class="title-tagline">在残骸与篝火之间，带领兽耳娘们重建部落</p>
 
+      <aside ref="author_ref" class="author-notice" style="opacity: 1">
+        <p class="author-notice-title">作者的话</p>
+        <ol class="author-notice-list">
+          <li>出问题大概率是相关插件没有安装。请确认安装了<strong>酒馆助手</strong>、<strong>提示词模板</strong>。</li>
+          <li>确认开启<strong>角色脚本</strong>、<strong>局部正则</strong>。</li>
+          <li>游玩过程中出现任何问题请到帖子留言反馈。</li>
+        </ol>
+      </aside>
+
       <button
         ref="start_ref"
         class="start-btn"
@@ -58,6 +67,7 @@ const eyebrow_ref = ref<HTMLElement | null>(null);
 const title_ref = ref<HTMLElement | null>(null);
 const divider_ref = ref<HTMLElement | null>(null);
 const tagline_ref = ref<HTMLElement | null>(null);
+const author_ref = ref<HTMLElement | null>(null);
 const start_ref = ref<HTMLButtonElement | null>(null);
 const hint_ref = ref<HTMLElement | null>(null);
 const starting = ref(false);
@@ -105,6 +115,10 @@ onMounted(() => {
     opacity: 0,
     y: 18,
   });
+  // 作者的话不依赖 GSAP 渐显，避免 iframe 内动画未触发时整块透明不可见
+  if (author_ref.value) {
+    gsap.set(author_ref.value, { opacity: 1, y: 0 });
+  }
   if (chars?.length) {
     gsap.set(chars, { opacity: 0, y: 28, rotateX: -40 });
   }
@@ -304,13 +318,52 @@ onUnmounted(() => {
 }
 
 .title-tagline {
-  margin: 0 0 24px;
+  margin: 0 0 16px;
   font-size: 0.84rem;
   font-weight: 700;
   color: #8c7462;
   line-height: 1.65;
   letter-spacing: 0.04em;
   padding: 0 8px;
+}
+
+.author-notice {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border: 2px dashed #e4d4ba;
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.85);
+  text-align: left;
+}
+
+.author-notice-title {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #c8955c;
+  letter-spacing: 0.12em;
+}
+
+.author-notice-list {
+  margin: 0;
+  padding-left: 1.15em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #6b4c3a;
+  line-height: 1.55;
+
+  li {
+    margin-bottom: 4px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  strong {
+    color: #5c4738;
+    font-weight: 900;
+  }
 }
 
 .start-btn {

@@ -11,20 +11,30 @@
       <PawPrint class="paw paw-4" :size="70" :stroke-width="1.2" />
     </div>
 
+    <ConfirmDialog />
     <div class="status-inner">
       <div class="status-card">
         <header class="top-bar parchment-panel">
+          <button
+            class="undo-btn"
+            type="button"
+            title="撤回上一步操作（尚未发送至 AI 前有效）"
+            :disabled="!canUndo"
+            @click="undoLastAction"
+          >
+            撤回
+          </button>
           <TabNav v-model="active_tab" :tabs="tabs" />
           <WorldHeader class="top-user" />
         </header>
 
         <div class="content-area fade-in">
           <div class="content-wrap">
-            <TerminalPanel v-if="active_tab === 'terminal'" />
-            <MembersPanel v-else-if="active_tab === 'members'" />
-            <CampPanel v-else-if="active_tab === 'camp'" />
-            <DiplomacyPanel v-else-if="active_tab === 'world'" />
-            <WorkQueuePanel v-else-if="active_tab === 'work'" />
+            <TerminalPanel v-show="active_tab === 'terminal'" />
+            <MembersPanel v-show="active_tab === 'members'" />
+            <CampPanel v-show="active_tab === 'camp'" />
+            <DiplomacyPanel v-show="active_tab === 'world'" />
+            <WorkQueuePanel v-show="active_tab === 'work'" />
           </div>
         </div>
       </div>
@@ -35,8 +45,10 @@
 <script setup lang="ts">
 import { Flame, Map, PawPrint, Pickaxe, Tent, Users } from 'lucide-vue-next';
 import type { FunctionalComponent } from 'vue';
+import { canUndo, undoLastAction } from '../composables/useActionUndo';
 import { useMvuReady } from '../composables/useMvuReady';
 import CampPanel from './CampPanel.vue';
+import ConfirmDialog from './ConfirmDialog.vue';
 import DiplomacyPanel from './DiplomacyPanel.vue';
 import MembersPanel from './MembersPanel.vue';
 import TabNav from './TabNav.vue';
@@ -54,7 +66,21 @@ const tabs: { id: string; label: string; icon: FunctionalComponent }[] = [
   { id: 'work', label: '工作队列', icon: Pickaxe },
 ];
 
-const active_tab = useLocalStorage<string>('status_bar:兽耳娘:active_tab', 'terminal');
+const ACTIVE_TAB_KEY = 'status_bar:兽耳娘:active_tab';
+
+const active_tab = ref(
+  typeof localStorage !== 'undefined'
+    ? (localStorage.getItem(ACTIVE_TAB_KEY) ?? 'terminal')
+    : 'terminal',
+);
+
+watch(
+  active_tab,
+  tab => {
+    localStorage.setItem(ACTIVE_TAB_KEY, tab);
+  },
+  { flush: 'sync' },
+);
 </script>
 
 <style lang="scss" scoped>
@@ -96,9 +122,32 @@ const active_tab = useLocalStorage<string>('status_bar:兽耳娘:active_tab', 't
   justify-content: space-between;
   gap: 8px;
   padding: 10px 10px 10px 12px;
-  margin: 14px 14px 0;
+  margin: 18px 14px 0;
   flex-wrap: nowrap;
   overflow: visible;
+}
+
+.undo-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 2px dashed #c8955c;
+  border-radius: 10px;
+  background: #fcf8f0;
+  color: #6b4c3a;
+  font-size: 0.68rem;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #f4ecdb;
+    border-color: #a88a6d;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 }
 
 :deep(.top-user) {
@@ -113,6 +162,11 @@ const active_tab = useLocalStorage<string>('status_bar:兽耳娘:active_tab', 't
   max-width: 56rem;
   margin: 0 auto;
   min-width: 0;
+  width: 100%;
+  position: relative;
+}
+
+.content-wrap > :not([style*='display: none']) {
   width: 100%;
 }
 

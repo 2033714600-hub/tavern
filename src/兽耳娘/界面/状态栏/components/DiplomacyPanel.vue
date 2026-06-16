@@ -21,78 +21,94 @@
       <div v-if="_.isEmpty(store.data.探索编队)" class="empty-hint">暂无编队，点击右上角新建队伍</div>
       <div v-else class="squad-grid">
         <article v-for="(squad, name) in store.data.探索编队" :key="name" class="squad-card">
-          <div class="squad-head">
-            <h4>{{ name }}</h4>
-            <div class="squad-status-row">
-              <span class="status-badge" :class="statusClass(squad.状态)">{{ statusLabel(squad.状态) }}</span>
-              <button
-                v-if="squad.状态 === '待命'"
-                class="disband-btn"
-                type="button"
-                title="解散队伍"
-                @click="disbandSquad(name)"
-              >
-                <X :size="16" />
-              </button>
-            </div>
-          </div>
-          <div class="member-box">
-            <div class="member-tags">
-              <span v-for="m in squad.具名成员" :key="m" class="member-tag">
-                {{ m }}
-                <button
-                  type="button"
-                  class="tag-remove"
-                  :disabled="squad.状态 !== '待命' || squad.具名成员.length <= 1"
-                  @click="removeMember(name, m)"
-                >
-                  <X :size="12" />
-                </button>
-              </span>
-              <button
-                v-if="squad.状态 === '待命'"
-                class="add-member"
-                type="button"
-                @click="openAddMember(name)"
-              >
-                <Plus :size="12" /> 具名兽耳娘
-              </button>
-            </div>
-            <div class="stepper-row">
-              <span>同行兽耳娘数量: <strong>{{ squad.无名队员数 }}</strong> 人</span>
-              <div class="stepper-btns">
-                <button type="button" :disabled="squad.状态 !== '待命' || squad.无名队员数 <= 0" @click="adjustUnnamed(name, -1)">
-                  <Minus :size="14" />
-                </button>
-                <button
-                  type="button"
-                  :disabled="squad.状态 !== '待命' || squad.无名队员数 >= max_unnamed_for_squad(name)"
-                  @click="adjustUnnamed(name, 1)"
-                >
-                  <Plus :size="14" />
-                </button>
+          <div class="squad-main">
+            <div class="squad-left">
+              <div class="squad-head">
+                <h4>{{ name }}</h4>
+                <div class="squad-status-row">
+                  <span class="status-badge" :class="statusClass(squad.状态)">{{ statusLabel(squad.状态) }}</span>
+                  <button
+                    v-if="squad.状态 === '待命'"
+                    class="disband-btn"
+                    type="button"
+                    title="解散队伍"
+                    @click="disbandSquad(name)"
+                  >
+                    <X :size="16" />
+                  </button>
+                </div>
+              </div>
+              <div class="member-box">
+                <div class="member-tags">
+                  <span v-for="m in squad.具名成员" :key="m" class="member-tag">
+                    {{ m }}
+                    <button
+                      type="button"
+                      class="tag-remove"
+                      :disabled="squad.状态 !== '待命' || squad.具名成员.length <= 1"
+                      @click="removeMember(name, m)"
+                    >
+                      <X :size="12" />
+                    </button>
+                  </span>
+                  <button
+                    v-if="squad.状态 === '待命'"
+                    class="add-member"
+                    type="button"
+                    @click="openAddMember(name)"
+                  >
+                    <Plus :size="12" /> 具名兽耳娘
+                  </button>
+                </div>
+                <div class="stepper-row">
+                  <span>同行兽耳娘数量: <strong>{{ squad.无名队员数 }}</strong> 人</span>
+                  <div class="stepper-btns">
+                    <button type="button" :disabled="squad.状态 !== '待命' || squad.无名队员数 <= 0" @click="adjustUnnamed(name, -1)">
+                      <Minus :size="14" />
+                    </button>
+                    <button
+                      type="button"
+                      :disabled="squad.状态 !== '待命' || squad.无名队员数 >= max_unnamed_for_squad(name)"
+                      @click="adjustUnnamed(name, 1)"
+                    >
+                      <Plus :size="14" />
+                    </button>
+                  </div>
+                </div>
+                <div class="stepper-row">
+                  <span>出队时长: <strong>{{ squad.计划时长 }}</strong> 小时</span>
+                  <Stepper
+                    v-model="squad.计划时长"
+                    :min="2"
+                    :max="8"
+                    :disabled="squad.状态 !== '待命'"
+                    class="duration-stepper"
+                  />
+                </div>
+                <div class="squad-foot">
+                  具名 {{ squad.具名成员.length }} 人 · 同行 {{ squad.无名队员数 }} 人
+                  <span class="pool-hint">（可协同族人 {{ unnamed_pool }} 人，具名不计入同行增减）</span>
+                </div>
               </div>
             </div>
-            <div class="stepper-row">
-              <span>出队时长: <strong>{{ squad.计划时长 }}</strong> 小时</span>
-              <Stepper
-                v-model="squad.计划时长"
-                :min="2"
-                :max="8"
-                :disabled="squad.状态 !== '待命'"
-                class="duration-stepper"
-              />
-            </div>
-            <div class="squad-foot">
-              具名 {{ squad.具名成员.length }} 人 · 同行 {{ squad.无名队员数 }} 人
-              <span class="pool-hint">（可协同族人 {{ unnamed_pool }} 人，具名不计入同行增减）</span>
+            <div class="squad-eval">
+              <p class="eval-title">编队综合技能 <span class="eval-cap">/150</span></p>
+              <p class="eval-formula">最高值 + 其余成员×15%</p>
+              <div v-for="row in squadSkillRows(name)" :key="row.key" class="skill-line" :title="SQUAD_SKILL_PURPOSES[row.key]">
+                <span>{{ row.key }}值</span>
+                <strong>{{ row.total }}</strong>
+                <span class="skill-tier">{{ row.tier }}</span>
+              </div>
             </div>
           </div>
-          <div class="squad-actions">
-            <button class="dispatch-explore" type="button" :disabled="squad.状态 !== '待命'" @click="dispatch(name, '探索中', '出发探索')">
+          <div class="squad-actions three-cols">
+            <button class="dispatch-explore" type="button" :disabled="squad.状态 !== '待命'" @click="openDispatchModal(name, '探索')">
               出发探索
             </button>
-            <button class="dispatch-gather" type="button" :disabled="squad.状态 !== '待命'" @click="dispatch(name, '采集中', '外出采集')">
+            <button class="dispatch-hunt" type="button" :disabled="squad.状态 !== '待命'" @click="openDispatchModal(name, '狩猎')">
+              外出狩猎
+            </button>
+            <button class="dispatch-gather" type="button" :disabled="squad.状态 !== '待命'" @click="openDispatchModal(name, '采集')">
               外出采集
             </button>
           </div>
@@ -157,6 +173,76 @@
         </div>
       </article>
     </section>
+
+    <!-- 出发探索 / 外出狩猎 / 外出采集 -->
+    <div v-if="dispatch_modal" class="modal-overlay" @click.self="closeDispatchModal">
+      <div class="parchment-panel modal-panel dispatch-modal" :class="dispatch_modal.mode">
+        <ModalClose @click="closeDispatchModal" />
+        <div class="modal-head">
+          <Map v-if="dispatch_modal.mode === '探索'" :size="32" class="accent explore-accent" />
+          <Target v-else-if="dispatch_modal.mode === '狩猎'" :size="32" class="accent hunt-accent" />
+          <Trees v-else :size="32" class="accent gather-accent" />
+          <h3>{{ SQUAD_ACTION_MECHANISM[dispatch_modal.mode].label }} · {{ dispatch_modal.squad }}</h3>
+        </div>
+        <p class="dispatch-focus">{{ SQUAD_ACTION_MECHANISM[dispatch_modal.mode].focus }}</p>
+        <ul class="output-tiers modal-tiers">
+          <li v-for="(out, i) in SQUAD_ACTION_MECHANISM[dispatch_modal.mode].outputs" :key="i">
+            <span class="tier-tag">{{ out.tier }}</span>{{ out.text }}
+          </li>
+        </ul>
+        <p class="dispatch-eval-preview">{{ dispatchModalEvaluation }}</p>
+        <p v-if="dispatch_night_hint" class="night-hint">{{ dispatch_night_hint }}</p>
+        <p v-if="exploreDynamicGenHint" class="dynamic-gen-hint">{{ exploreDynamicGenHint }}</p>
+        <div class="form-field">
+          <label class="form-label">{{ dispatchAreaLabel }}</label>
+          <select v-model="dispatch_target_area" class="form-select">
+            <option value="">点击选择区域...</option>
+            <option v-for="[areaName, area] in dispatch_area_options" :key="areaName" :value="areaName">
+              {{ areaName }}（{{ area.危险度 }} · 探索度{{ area.探索度 }}%{{ area.已掌握 ? ' · 已掌握' : '' }}）
+            </option>
+          </select>
+          <p v-if="dispatch_area_options.length === 0" class="area-filter-hint">暂无符合条件的区域，请先从区域内容中掌握更多地带。</p>
+        </div>
+        <div class="hunt-pack-head">
+          <span class="form-label">出行背包</span>
+          <span class="pack-weight" :class="{ over: dispatch_pack_weight > SQUAD_PACK_MAX_WEIGHT }">
+            负重 {{ dispatch_pack_weight }} / {{ SQUAD_PACK_MAX_WEIGHT }}
+          </span>
+        </div>
+        <p class="pack-hint">从仓库选取物资装入背包，可提升本次行动综合效能（出发时消耗）。</p>
+        <div v-if="warehouse_pack_items.length === 0" class="pack-empty-hint">仓库暂无可用物资。</div>
+        <div v-else class="hunt-pack-grid scroll-area">
+          <div v-for="item in warehouse_pack_items" :key="item.id" class="pack-item-card">
+            <div class="pack-item-top">
+              <span class="pack-item-name">{{ item.label }}</span>
+              <span v-if="packBonusTag(item)" class="pack-bonus-tag">{{ packBonusTag(item) }}</span>
+            </div>
+            <p class="pack-item-hint">{{ item.hint }}</p>
+            <div class="pack-item-row">
+              <span class="pack-stock">库存 {{ item.stock }}</span>
+              <div class="pack-stepper">
+                <button type="button" :disabled="packQty(item.id) <= 0" @click="adjustPackItem(item.id, -1)">
+                  <Minus :size="14" />
+                </button>
+                <strong>{{ packQty(item.id) }}</strong>
+                <button type="button" :disabled="!canAddPackItem(item)" @click="adjustPackItem(item.id, 1)">
+                  <Plus :size="14" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button
+          class="tribal-button w-full dispatch-go-btn"
+          :class="dispatch_modal.mode"
+          type="button"
+          :disabled="!dispatch_target_area || dispatch_pack_weight > SQUAD_PACK_MAX_WEIGHT"
+          @click="confirmDispatch"
+        >
+          确认{{ SQUAD_ACTION_MECHANISM[dispatch_modal.mode].label }}
+        </button>
+      </div>
+    </div>
 
     <!-- 新建队伍 -->
     <div v-if="show_new" class="modal-overlay" @click.self="show_new = false">
@@ -223,17 +309,36 @@
 
 <script setup lang="ts">
 import _ from 'lodash';
-import { Check, ChevronRight, Map, Minus, Plus, ScrollText, Trees, Users, X } from 'lucide-vue-next';
+import { Check, ChevronRight, Map, Minus, Plus, ScrollText, Target, Trees, Users, X } from 'lucide-vue-next';
 import type { Schema } from '../../../schema';
-import { sendUserAction } from '../composables/useGameActions';
+import { useConfirm } from '../composables/useConfirm';
+import { runUserAction } from '../composables/useGameActions';
 import { useMemberPool } from '../composables/useMemberPool';
 import { useUiStore } from '../composables/useUiStore';
 import { useDataStore } from '../store';
+import {
+  formatActionSettlementHint,
+  SQUAD_ACTION_MECHANISM,
+  type SquadActionKey,
+} from '../constants/squadActionMechanism';
+import {
+  calcPackBonus,
+  formatPackBonusText,
+  formatPackLoadout,
+  listWarehousePackItems,
+  SQUAD_PACK_MAX_WEIGHT,
+  type WarehousePackItem,
+} from '../constants/squadPack';
+import { isNightWorldTime, NIGHT_EXPLORATION_HINT, packHasLighting } from '../constants/nightExploration';
+import { SQUAD_SKILL_PURPOSES } from '../constants/npcSkills';
+import { evaluateSquadAction, evaluateSquadHunt, squadCompositeSkillRows } from '../util/squadEvaluation';
+import { mark_squad_members_departed } from '../util/squadSync';
 import ModalClose from './ModalClose.vue';
 import PanelTitle from './PanelTitle.vue';
 import Stepper from './Stepper.vue';
 
 const store = useDataStore();
+const { confirm } = useConfirm();
 const { ui, hide_area } = useUiStore();
 const { unnamed_pool, max_unnamed_for_squad, available_named_for_squad } = useMemberPool();
 
@@ -245,6 +350,8 @@ const selected_area = ref('');
 const selected_area_data = ref<Schema['探索区域'][string] | null>(null);
 const dispatch_squad = ref('');
 const expanded_journal = ref('');
+const dispatch_modal = ref<{ squad: string; mode: SquadActionKey } | null>(null);
+const dispatch_target_area = ref('');
 
 const visible_areas = computed(() =>
   _.toPairs(store.data.探索区域).filter(([name]) => !ui.value.hidden_areas.includes(name)),
@@ -259,20 +366,246 @@ const availableMembers = computed(() => {
   );
 });
 
+const explore_area_options = computed(() => {
+  const preferred = visible_areas.value.filter(([, area]) => !area.已掌握 || area.探索度 < 100);
+  return preferred.length > 0 ? preferred : visible_areas.value;
+});
+
+const gather_area_options = computed(() => {
+  const preferred = visible_areas.value.filter(([, area]) => area.已掌握 && !area.危险度.includes('高'));
+  if (preferred.length > 0) return preferred;
+  const mastered = visible_areas.value.filter(([, area]) => area.已掌握);
+  return mastered.length > 0 ? mastered : visible_areas.value;
+});
+
+const hunt_area_options = computed(() =>
+  _.toPairs(store.data.探索区域).filter(([name]) => !ui.value.hidden_areas.includes(name)),
+);
+
+const dispatch_area_options = computed(() => {
+  if (!dispatch_modal.value) return [];
+  const mode = dispatch_modal.value.mode;
+  if (mode === '探索') return explore_area_options.value;
+  if (mode === '采集') return gather_area_options.value;
+  return hunt_area_options.value;
+});
+
+const dispatchAreaLabel = computed(() => {
+  if (!dispatch_modal.value) return '目标区域';
+  const labels: Record<SquadActionKey, string> = {
+    探索: '探索目标区域',
+    狩猎: '狩猎目标区域',
+    采集: '采集目标区域',
+  };
+  return labels[dispatch_modal.value.mode];
+});
+
+const activeDispatchSquad = computed(() => {
+  if (!dispatch_modal.value) return null;
+  return store.data.探索编队[dispatch_modal.value.squad] ?? null;
+});
+
+const warehouse_pack_items = computed(() => {
+  if (!dispatch_modal.value) return [];
+  return listWarehousePackItems(store.data.营地.仓库储备, dispatch_modal.value.mode);
+});
+
+const dispatch_pack_weight = computed(() => {
+  return calcPackBonus(activeDispatchSquad.value?.出行背包, dispatch_modal.value?.mode ?? '探索').weight;
+});
+
+const dispatchModalEvaluation = computed(() => {
+  if (!dispatch_modal.value) return '';
+  const { squad, mode } = dispatch_modal.value;
+  const pack = calcPackBonus(store.data.探索编队[squad]?.出行背包, mode);
+  if (mode === '狩猎') return squadHuntEvaluation(squad, pack);
+  return squadEvaluation(squad, mode, pack);
+});
+
+const dispatch_night_hint = computed(() => {
+  if (!dispatch_modal.value || !isNightWorldTime(store.data.世界.时间)) return '';
+  const has_light = packHasLighting(activeDispatchSquad.value?.出行背包);
+  const lighting_note = has_light ? '已携带照明装备，可部分抵消入夜惩罚。' : '未携带照明，成功率将大幅下降。';
+  return `${NIGHT_EXPLORATION_HINT} ${lighting_note}`;
+});
+
+const exploreDynamicGenHint = computed(() => {
+  if (!dispatch_modal.value || dispatch_modal.value.mode !== '探索' || !dispatch_target_area.value) return '';
+  const area = store.data.探索区域[dispatch_target_area.value];
+  if (!area || area.探索度 < 70) return '';
+  const squad = store.data.探索编队[dispatch_modal.value.squad];
+  const hasPerception = squad?.具名成员.some(m => {
+    const race = store.data.具名NPC[m]?.种族 ?? '';
+    return /犬|猫/.test(race);
+  });
+  const prob = hasPerception ? 35 : 20;
+  return `目标探索度 ${area.探索度}%≥70：结算时 ${prob}% 概率发现新子区域（见区域动态生成规则）。`;
+});
+
 function statusClass(s: string) {
   if (s === '待命') return 'idle';
   if (s === '采集中') return 'gather';
+  if (s === '狩猎中') return 'hunt';
   return 'explore';
 }
 
 function statusLabel(s: string) {
   if (s === '待命') return '待命在营';
   if (s === '采集中') return '采集中...';
+  if (s === '狩猎中') return '狩猎中...';
   return '探索中...';
+}
+
+function packBonusTag(item: WarehousePackItem) {
+  return formatPackBonusText(item.bonus);
+}
+
+function packQty(itemId: string) {
+  return activeDispatchSquad.value?.出行背包?.[itemId] ?? 0;
+}
+
+function canAddPackItem(item: WarehousePackItem) {
+  const squad = activeDispatchSquad.value;
+  const mode = dispatch_modal.value?.mode;
+  if (!squad || !mode) return false;
+  const nextWeight = calcPackBonus(squad.出行背包, mode).weight + item.weight;
+  if (nextWeight > SQUAD_PACK_MAX_WEIGHT) return false;
+  return packQty(item.id) < item.stock;
+}
+
+function adjustPackItem(itemId: string, delta: number) {
+  const squad = activeDispatchSquad.value;
+  const mode = dispatch_modal.value?.mode;
+  if (!squad || !mode) return;
+  if (!squad.出行背包) squad.出行背包 = {};
+  const stock = store.data.营地.仓库储备[itemId]?.当前 ?? 0;
+  const next = (squad.出行背包[itemId] ?? 0) + delta;
+  if (next <= 0) {
+    delete squad.出行背包[itemId];
+    return;
+  }
+  if (delta > 0 && next > stock) return;
+  const item = warehouse_pack_items.value.find(i => i.id === itemId);
+  if (item && delta > 0) {
+    const bonus = calcPackBonus(squad.出行背包, mode);
+    if (bonus.weight + item.weight > SQUAD_PACK_MAX_WEIGHT) return;
+  }
+  squad.出行背包[itemId] = next;
+}
+
+function squadHuntEvaluation(
+  name: string,
+  pack: ReturnType<typeof calcPackBonus> = calcPackBonus(store.data.探索编队[name]?.出行背包, '狩猎'),
+) {
+  const squad = store.data.探索编队[name];
+  if (!squad) return '';
+  const rows = squadSkillRows(name);
+  const skills = Object.fromEntries(rows.map(r => [r.key, r.total])) as Record<
+    '狩猎' | '战斗' | '采集' | '后勤',
+    number
+  >;
+  return evaluateSquadHunt(skills, squad.计划时长, { 狩猎: pack.狩猎, 战斗: pack.战斗 });
+}
+
+function deductPackFromWarehouse(loadout: Record<string, number>) {
+  for (const [itemId, qty] of Object.entries(loadout)) {
+    if (qty <= 0) continue;
+    const reserve = store.data.营地.仓库储备[itemId];
+    if (reserve) reserve.当前 = Math.max(0, reserve.当前 - qty);
+  }
 }
 
 function areaBorder(risk: string) {
   return risk.includes('高') ? 'danger' : 'safe';
+}
+
+function squadSkillRows(name: string) {
+  const squad = store.data.探索编队[name];
+  if (!squad) return [];
+  return squadCompositeSkillRows(
+    squad.具名成员,
+    squad.无名队员数,
+    store.data.具名NPC,
+    store.data.营地.无名族人基准效率,
+  );
+}
+
+function openDispatchModal(name: string, mode: SquadActionKey) {
+  const squad = store.data.探索编队[name];
+  const options =
+    mode === '探索'
+      ? explore_area_options.value
+      : mode === '采集'
+        ? gather_area_options.value
+        : hunt_area_options.value;
+  dispatch_modal.value = { squad: name, mode };
+  dispatch_target_area.value = squad?.目标区域 || options[0]?.[0] || '';
+  if (squad && !squad.出行背包) squad.出行背包 = {};
+}
+
+function closeDispatchModal() {
+  dispatch_modal.value = null;
+  dispatch_target_area.value = '';
+}
+
+async function confirmDispatch() {
+  const modal = dispatch_modal.value;
+  if (!modal || !dispatch_target_area.value) return;
+  const squad = store.data.探索编队[modal.squad];
+  if (!squad || squad.状态 !== '待命') return;
+  if (dispatch_pack_weight.value > SQUAD_PACK_MAX_WEIGHT) return;
+
+  const def = SQUAD_ACTION_MECHANISM[modal.mode];
+  const statusMap: Record<SquadActionKey, Schema['探索编队'][string]['状态']> = {
+    探索: '探索中',
+    狩猎: '狩猎中',
+    采集: '采集中',
+  };
+  const loadout = { ...squad.出行背包 };
+  const packBonus = calcPackBonus(loadout, modal.mode);
+  const members = [...squad.具名成员, ...(squad.无名队员数 > 0 ? [`${squad.无名队员数}名同行族人`] : [])].join('、');
+  const loadoutText = formatPackLoadout(loadout);
+  const bonusText = formatPackBonusText(packBonus);
+
+  let extra = '';
+  if (modal.mode === '探索' && exploreDynamicGenHint.value) {
+    extra = `；${exploreDynamicGenHint.value}`;
+  }
+  if (dispatch_night_hint.value) {
+    extra += `；${dispatch_night_hint.value}`;
+  }
+
+  const actionText =
+    `[${def.command}] 队伍「${modal.squad}」前往「${dispatch_target_area.value}」` +
+    `${members ? `，成员：${members}` : ''}` +
+    `，计划时长 ${squad.计划时长} 小时` +
+    `，出行背包：${loadoutText}` +
+    `，物资加成 ${bonusText}` +
+    `；${formatActionSettlementHint(modal.mode)}${extra}`;
+
+  await runUserAction(actionText, () => {
+    deductPackFromWarehouse(loadout);
+    squad.出行背包 = {};
+    squad.目标区域 = dispatch_target_area.value;
+    squad.状态 = statusMap[modal.mode];
+    mark_squad_members_departed(store.data, squad, modal.mode, dispatch_target_area.value);
+  });
+  closeDispatchModal();
+}
+
+function squadEvaluation(
+  name: string,
+  mode: '探索' | '采集',
+  pack: ReturnType<typeof calcPackBonus> = calcPackBonus(store.data.探索编队[name]?.出行背包, mode),
+) {
+  const squad = store.data.探索编队[name];
+  if (!squad) return '';
+  const rows = squadSkillRows(name);
+  const skills = Object.fromEntries(rows.map(r => [r.key, r.total])) as Record<
+    '狩猎' | '战斗' | '采集' | '后勤',
+    number
+  >;
+  return evaluateSquadAction(skills, mode, squad.计划时长, pack);
 }
 
 function adjustUnnamed(name: string, delta: number) {
@@ -289,28 +622,42 @@ function openAddMember(name: string) {
 async function pickMember(npc: string) {
   const squad = store.data.探索编队[add_squad.value];
   if (!squad) return;
-  await sendUserAction(`[编队调整] 将${npc}编入「${add_squad.value}」`);
-  squad.具名成员.push(npc);
-  add_squad.value = '';
+  const squadName = add_squad.value;
+  await runUserAction(`[编队调整] 将${npc}编入「${squadName}」`, () => {
+    squad.具名成员.push(npc);
+    add_squad.value = '';
+  });
 }
 
 async function removeMember(squadName: string, member: string) {
   const squad = store.data.探索编队[squadName];
   if (!squad || squad.状态 !== '待命' || squad.具名成员.length <= 1) return;
-  await sendUserAction(`[编队调整] 将${member}移出「${squadName}」`);
-  squad.具名成员 = squad.具名成员.filter(m => m !== member);
+  const ok = await confirm({
+    title: '移出编队',
+    message: `确定将「${member}」从「${squadName}」中移出吗？`,
+    confirmText: '确认移出',
+    danger: true,
+  });
+  if (!ok) return;
+  await runUserAction(`[编队调整] 将${member}移出「${squadName}」`, () => {
+    squad.具名成员 = squad.具名成员.filter(m => m !== member);
+  });
 }
 
 async function createSquad() {
   const name = new_name.value.trim();
   if (!name || !new_leader.value) return;
-  await sendUserAction(`[新建编队] ${name}，队长：${new_leader.value}`);
-  store.data.探索编队[name] = {
-    状态: '待命',
-    具名成员: [new_leader.value],
-    无名队员数: 0,
-    计划时长: 4,
-  };
+  const leader = new_leader.value;
+  await runUserAction(`[新建编队] ${name}，队长：${leader}`, () => {
+    store.data.探索编队[name] = {
+      状态: '待命',
+      具名成员: [leader],
+      无名队员数: 0,
+      计划时长: 4,
+      目标区域: '',
+      出行背包: {},
+    };
+  });
   new_name.value = '';
   new_leader.value = '';
   show_new.value = false;
@@ -319,18 +666,16 @@ async function createSquad() {
 async function disbandSquad(name: string) {
   const squad = store.data.探索编队[name];
   if (!squad || squad.状态 !== '待命') return;
-  await sendUserAction(`[解散编队] ${name}`);
-  delete store.data.探索编队[name];
-}
-
-async function dispatch(name: string, status: '探索中' | '采集中', action: string) {
-  const squad = store.data.探索编队[name];
-  if (!squad || squad.状态 !== '待命') return;
-  const members = [...squad.具名成员, ...(squad.无名队员数 > 0 ? [`${squad.无名队员数}名同行族人`] : [])].join('、');
-  await sendUserAction(
-    `[${action}] 队伍「${name}」${members ? `，成员：${members}` : ''}，计划时长 ${squad.计划时长} 小时`,
-  );
-  squad.状态 = status;
+  const ok = await confirm({
+    title: '解散编队',
+    message: `确定解散「${name}」吗？\n成员将返回营地待命。`,
+    confirmText: '确认解散',
+    danger: true,
+  });
+  if (!ok) return;
+  await runUserAction(`[解散编队] ${name}`, () => {
+    delete store.data.探索编队[name];
+  });
 }
 
 function openArea(name: string, area: Schema['探索区域'][string]) {
@@ -348,15 +693,34 @@ async function areaDispatch(mode: string) {
   if (!dispatch_squad.value || !selected_area.value) return;
   const squad = store.data.探索编队[dispatch_squad.value];
   const hours = squad?.计划时长 ?? 4;
-  await sendUserAction(`[${mode}] 队伍「${dispatch_squad.value}」前往「${selected_area.value}」，计划时长 ${hours} 小时`);
-  if (squad) squad.状态 = mode === '采集' ? '采集中' : '探索中';
+  const actionKey: SquadActionKey = mode === '采集' ? '采集' : '探索';
+  const command = SQUAD_ACTION_MECHANISM[actionKey].command;
+  const members = squad
+    ? [...squad.具名成员, ...(squad.无名队员数 > 0 ? [`${squad.无名队员数}名同行族人`] : [])].join('、')
+    : '';
+  const areaName = selected_area.value;
+  const squadName = dispatch_squad.value;
+  await runUserAction(
+    `[${command}] 队伍「${squadName}」前往「${areaName}」` +
+      `${members ? `，成员：${members}` : ''}` +
+      `，计划时长 ${hours} 小时` +
+      `；${formatActionSettlementHint(actionKey)}`,
+    () => {
+      if (squad) {
+        squad.目标区域 = areaName;
+        squad.状态 = mode === '采集' ? '采集中' : '探索中';
+      }
+    },
+  );
   closeArea();
 }
 
 async function ignoreArea() {
   if (!selected_area.value) return;
-  await sendUserAction(`[忽略区域] ${selected_area.value}`);
-  hide_area(selected_area.value);
+  const areaName = selected_area.value;
+  await runUserAction(`[忽略区域] ${areaName}`, () => {
+    hide_area(areaName);
+  });
   closeArea();
 }
 
@@ -366,15 +730,17 @@ function toggleJournal(title: string, handled: boolean) {
 }
 
 async function archiveJournal(title: string) {
-  await sendUserAction(`[处理见闻] ${title}`);
-  const journal = store.data.大地见闻[title];
-  if (journal) journal.已处理 = true;
-  expanded_journal.value = '';
+  await runUserAction(`[处理见闻] ${title}`, () => {
+    const journal = store.data.大地见闻[title];
+    if (journal) journal.已处理 = true;
+    expanded_journal.value = '';
+  });
 }
 </script>
 
 <style lang="scss" scoped>
 .panel-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -431,7 +797,7 @@ async function archiveJournal(title: string) {
 
 .squad-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 14px;
 }
 
@@ -446,6 +812,141 @@ async function archiveJournal(title: string) {
 
   &:hover {
     border-color: #c8955c;
+  }
+}
+
+.squad-main {
+  display: grid;
+  grid-template-columns: 1fr minmax(140px, 200px);
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.squad-left {
+  min-width: 0;
+}
+
+.squad-eval {
+  background: #fdfbf7;
+  border: 2px dashed #d4c2a4;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.eval-title {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #8c7462;
+}
+
+.eval-cap {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #a88a6d;
+}
+
+.eval-formula {
+  margin: 0 0 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #a88a6d;
+}
+
+.skill-line {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #5c4738;
+  margin-bottom: 4px;
+
+  strong {
+    color: #a8543f;
+    font-size: 0.82rem;
+  }
+}
+
+.skill-tier {
+  font-size: 0.62rem;
+  color: #8c7462;
+}
+
+.action-eval {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e4d4ba;
+}
+
+.action-mechanism-block {
+  & + & {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #efe4d4;
+  }
+}
+
+.action-focus {
+  margin: 4px 0 6px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #8c7462;
+  line-height: 1.4;
+}
+
+.output-tiers {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+
+  li {
+    margin: 0 0 3px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #6b4c3a;
+    line-height: 1.35;
+  }
+}
+
+.tier-tag {
+  display: inline-block;
+  min-width: 2.2em;
+  margin-right: 4px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 0.58rem;
+  font-weight: 900;
+  background: #f4ecdb;
+  color: #7a6554;
+}
+
+.eval-result {
+  margin: 4px 0 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #6b4c3a;
+  line-height: 1.45;
+}
+
+.eval-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #7ca982;
+
+  &.探索 {
+    color: #7ca982;
+  }
+
+  &.狩猎 {
+    color: #c47a4a;
+  }
+
+  &.采集 {
+    color: #b87a41;
   }
 }
 
@@ -655,10 +1156,15 @@ async function archiveJournal(title: string) {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+
+  &.three-cols {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .dispatch-explore,
-.dispatch-gather {
+.dispatch-gather,
+.dispatch-hunt {
   padding: 10px;
   border-radius: 12px;
   font-size: 0.85rem;
@@ -682,12 +1188,256 @@ async function archiveJournal(title: string) {
   }
 }
 
+.dispatch-hunt {
+  background: #c47a4a;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #a86438;
+  }
+}
+
 .dispatch-gather {
   background: #e6b981;
   color: #634326;
 
   &:hover:not(:disabled) {
     background: #d4a86a;
+  }
+}
+
+.status-badge.hunt {
+  background: #f4e8db;
+  color: #a86438;
+  border-color: #c47a4a;
+}
+
+.dispatch-focus {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #8c7462;
+  line-height: 1.45;
+}
+
+.modal-tiers {
+  margin-bottom: 10px;
+}
+
+.dispatch-eval-preview {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: #f8f4ec;
+  border: 1px dashed #e4d4ba;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b4c3a;
+  line-height: 1.45;
+}
+
+.area-filter-hint {
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #a8543f;
+}
+
+.explore-accent {
+  color: #7ca982;
+}
+
+.gather-accent {
+  color: #b87a41;
+}
+
+.dispatch-go-btn {
+  &.探索 {
+    background: #7ca982;
+    color: #fff;
+  }
+
+  &.狩猎 {
+    background: #c47a4a;
+    color: #fff;
+  }
+
+  &.采集 {
+    background: #e6b981;
+    color: #634326;
+  }
+}
+
+.night-hint {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #2a2438;
+  color: #d4c8f0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.dynamic-gen-hint {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: #eef5ef;
+  border: 1px dashed #7ca982;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4a7c59;
+  line-height: 1.45;
+}
+
+.pack-empty-hint {
+  margin: 0 0 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #8c7462;
+}
+
+.dispatch-modal {
+  max-width: 520px;
+}
+
+.hunt-accent {
+  color: #c47a4a;
+}
+
+.hunt-eval-preview {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: #fdf6ee;
+  border: 1px dashed #e6b981;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b4c3a;
+  line-height: 1.45;
+}
+
+.hunt-pack-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.pack-weight {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #7ca982;
+
+  &.over {
+    color: #a8543f;
+  }
+}
+
+.pack-hint {
+  margin: 0 0 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #8c7462;
+}
+
+.hunt-pack-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  max-height: 42vh;
+  overflow: auto;
+  margin-bottom: 14px;
+}
+
+.pack-item-card {
+  padding: 10px 12px;
+  border: 2px solid #e4d4ba;
+  border-radius: 12px;
+  background: #fffdf8;
+}
+
+.pack-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.pack-item-name {
+  font-weight: 900;
+  color: #4a3b32;
+  font-size: 0.88rem;
+}
+
+.pack-bonus-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #a86438;
+  background: #f4e8db;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.pack-item-hint {
+  margin: 0 0 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #8c7462;
+}
+
+.pack-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pack-stock {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #6b4c3a;
+}
+
+.pack-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  button {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #f4ecdb;
+    color: #5c4738;
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+  }
+
+  strong {
+    min-width: 1.2em;
+    text-align: center;
+    color: #a8543f;
+  }
+}
+
+.hunt-go-btn {
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .squad-actions.three-cols {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -956,7 +1706,10 @@ async function archiveJournal(title: string) {
 }
 
 @media (max-width: 640px) {
-  .squad-grid,
+  .squad-main {
+    grid-template-columns: 1fr;
+  }
+
   .area-grid {
     grid-template-columns: 1fr;
   }

@@ -26,6 +26,7 @@
           </div>
           <div>
             <p class="stat-label">当前天象时辰</p>
+            <p class="info-value calendar-line">{{ beast_calendar }}</p>
             <p class="info-value">{{ store.data.世界.季节 }} · {{ store.data.世界.时间 }}</p>
           </div>
         </div>
@@ -38,10 +39,15 @@
           <Flame class="fuel-flame" :size="28" :stroke-width="2.25" />
           <span>篝火燃料储备</span>
         </div>
-        <span class="highlight-amber">{{ fuel.当前 }} / {{ fuel.上限 }} 捆木材</span>
+        <span class="highlight-amber fuel-time">{{ fuel_duration_text }}</span>
       </div>
       <ProgressBar :value="fuel_percent" size="tall" tone-override="orange" />
-      <p class="fuel-hint">💡 {{ fuel_hint }}</p>
+      <div class="fuel-foot">
+        <p class="fuel-opinion">💬 {{ tribe_fire_opinion }}</p>
+        <button class="tribal-button-alt add-fuel-btn" type="button" @click="show_add_fuel = true">
+          添加燃料
+        </button>
+      </div>
     </div>
 
     <div class="parchment-panel affairs-panel">
@@ -58,6 +64,8 @@
           </h4>
           <article v-for="(affair, name) in primary_affairs" :key="name" class="affair-card primary">
             <span class="affair-title">{{ name }}</span>
+            <span v-if="affair.剩余时间" class="affair-deadline">剩余：{{ affair.剩余时间 }}</span>
+            <span v-if="affair.逃离原因" class="affair-reason">原因：{{ affair.逃离原因 }}</span>
             <span class="affair-desc">{{ affair.说明 }}</span>
           </article>
         </div>
@@ -75,16 +83,38 @@
       <button class="tribal-button meeting-btn" type="button" @click="openMeeting">召开部族会议</button>
     </div>
 
+    <div class="parchment-panel affairs-panel general-affairs-panel">
+      <div class="affairs-title">
+        <ClipboardList class="affairs-clipboard" :size="32" :stroke-width="2.25" />
+        <h3>综合事物</h3>
+      </div>
+      <div v-if="_.isEmpty(store.data.综合事物)" class="empty-hint">暂无未分类事项</div>
+      <article v-for="(item, name) in store.data.综合事物" :key="name" class="affair-card general">
+        <div class="general-affair-head">
+          <span class="affair-title">{{ name }}</span>
+          <span class="general-status" :class="statusClass(item.状态)">{{ item.状态 }}</span>
+        </div>
+        <span class="affair-desc">{{ item.说明 }}</span>
+        <div v-if="item.具名参与.length" class="general-members">
+          <span v-for="m in item.具名参与" :key="m" class="member-chip">{{ m }}</span>
+        </div>
+      </article>
+    </div>
+
     <!-- MVU 扩展区块：保持不动 -->
     <div class="parchment-panel mvu-panel">
       <h3 class="mvu-title">🌍 坠星大陆 · 营地概况</h3>
-      <div class="info-grid compact">
+      <div class="info-grid compact three-cols">
         <div class="mvu-cell">
           <div class="stat-label">当前驻扎</div>
           <div class="stat-value">{{ store.data.世界.当前位置 }}</div>
         </div>
+        <div class="mvu-cell highlight-cell">
+          <div class="stat-label">生存天数</div>
+          <div class="stat-value">第 {{ store.data.世界.生存天数 }} 天</div>
+        </div>
         <div class="mvu-cell">
-          <div class="stat-label">殖民时代</div>
+          <div class="stat-label">时代</div>
           <div class="stat-value">时代{{ store.data.世界.当前时代 }} · {{ current_era.名称 }}</div>
         </div>
       </div>
@@ -100,6 +130,35 @@
         </li>
       </ul>
       <p v-else class="empty-hint">无装备记录</p>
+    </div>
+
+    <div v-if="show_add_fuel" class="modal-overlay" @click.self="show_add_fuel = false">
+      <div class="parchment-panel modal-panel">
+        <button class="modal-close" type="button" @click="show_add_fuel = false">×</button>
+        <div class="modal-head">
+          <Flame class="fuel-flame" :size="32" :stroke-width="2.25" />
+          <h3>添加篝火燃料</h3>
+        </div>
+        <div class="form-field">
+          <label class="form-label">燃料材料</label>
+          <select v-model="fuel_material_id" class="form-select">
+            <option v-for="m in FUEL_MATERIALS" :key="m.id" :value="m.id">{{ m.label }}</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">添加数量</label>
+          <Stepper v-model="fuel_amount" :min="1" :max="max_fuel_amount" />
+          <p class="fuel-stock-hint">仓库可用：{{ fuel_stock_available }} · 预计续火 {{ fuel_preview_text }}</p>
+        </div>
+        <button
+          class="tribal-button w-full"
+          type="button"
+          :disabled="fuel_amount <= 0 || fuel_amount > fuel_stock_available"
+          @click="confirmAddFuel"
+        >
+          投入火塘
+        </button>
+      </div>
     </div>
 
     <div v-if="show_meeting" class="modal-overlay" @click.self="show_meeting = false">
@@ -145,39 +204,106 @@
 
 <script setup lang="ts">
 import _ from 'lodash';
-import { Crown, Flame, Sun, Trees } from 'lucide-vue-next';
+import { ClipboardList, Crown, Flame, Sun, Trees } from 'lucide-vue-next';
 import { ERA_INFO } from '../../../constants/era';
-import { sendUserAction } from '../composables/useGameActions';
+import { runUserAction } from '../composables/useGameActions';
 import { useDataStore } from '../store';
+import { format_beast_calendar } from '../util/beastCalendar';
+import {
+  dailyFuelBurn,
+  formatFuelDuration,
+  FUEL_MATERIALS,
+  fuelHoursRemaining,
+  previewFuelAddition,
+  isFireLit,
+  resolveFirepitKey,
+  syncFirepitWithFuel,
+  tribeFireOpinion,
+} from '../util/campfire';
 import PanelTitle from './PanelTitle.vue';
 import ProgressBar from './ProgressBar.vue';
+import Stepper from './Stepper.vue';
 
 const store = useDataStore();
+const beast_calendar = computed(() => format_beast_calendar(store.data.世界.星历));
 
 const show_meeting = ref(false);
+const show_add_fuel = ref(false);
+const fuel_material_id = ref(FUEL_MATERIALS[0].id);
+const fuel_amount = ref(1);
 const meeting_name = ref('');
 const meeting_content = ref('');
 const meeting_level = ref<'主要' | '次要'>('主要');
 
 const current_era = computed(() => ERA_INFO[store.data.世界.当前时代]);
 
-const fuel = computed(() => {
-  const wood = store.data.营地.仓库储备['坚固木材'];
-  if (wood) {
-    return { 当前: wood.当前, 上限: wood.上限 };
-  }
-  return store.data.营地.篝火燃料;
-});
+const fuel = computed(() => store.data.营地.篝火燃料);
+
+const daily_burn = computed(() => dailyFuelBurn(store.data.营地.当前建筑));
+
+const fuel_hours = computed(() => fuelHoursRemaining(fuel.value.当前, daily_burn.value));
+
+const fuel_duration_text = computed(() => formatFuelDuration(fuel_hours.value));
 
 const fuel_percent = computed(() =>
   fuel.value.上限 > 0 ? (fuel.value.当前 / fuel.value.上限) * 100 : 0,
 );
 
-const fuel_hint = computed(() => {
-  if (fuel_percent.value >= 70) return '火焰还在旺盛燃烧，族人们在黑夜中感到安心。';
-  if (fuel_percent.value >= 30) return '篝火尚可维持，但需尽快补充燃料。';
-  return '篝火微弱，族人们开始感到不安……';
+const fire_is_lit = computed(() => {
+  const key = resolveFirepitKey(store.data.营地.当前建筑);
+  const pile = key ? store.data.营地.当前建筑[key] : undefined;
+  return isFireLit(fuel.value.当前, pile?.状态);
 });
+
+const tribe_fire_opinion = computed(() =>
+  tribeFireOpinion(
+    fuel_percent.value,
+    store.data.营地.向心力,
+    store.data.营地.生存指标.温饱度,
+    fire_is_lit.value,
+  ),
+);
+
+const selected_fuel_material = computed(
+  () => FUEL_MATERIALS.find(m => m.id === fuel_material_id.value) ?? FUEL_MATERIALS[0],
+);
+
+const fuel_stock_available = computed(() => {
+  const id = fuel_material_id.value;
+  const reserve = store.data.营地.仓库储备[id];
+  if (reserve) return reserve.当前;
+  if (id === '普通木柴') {
+    return store.data.营地.仓库储备['坚固木材']?.当前 ?? 0;
+  }
+  return 0;
+});
+
+const max_fuel_amount = computed(() => Math.max(1, fuel_stock_available.value));
+
+const fuel_preview_text = computed(() => {
+  const preview = previewFuelAddition(selected_fuel_material.value, fuel_amount.value, daily_burn.value);
+  return formatFuelDuration(preview.addedHours);
+});
+
+async function confirmAddFuel() {
+  const material = selected_fuel_material.value;
+  const amount = fuel_amount.value;
+  if (amount <= 0 || amount > fuel_stock_available.value) return;
+  const preview = previewFuelAddition(material, amount, daily_burn.value);
+  const actionText = `[添柴] 向篝火投入${material.label}×${amount}，预计续火${fuel_preview_text.value}`;
+  await runUserAction(actionText, () => {
+    const reserve = store.data.营地.仓库储备[material.id] ?? store.data.营地.仓库储备['坚固木材'];
+    if (reserve) {
+      reserve.当前 = Math.max(0, reserve.当前 - amount);
+    }
+    store.data.营地.篝火燃料.当前 = Math.min(
+      store.data.营地.篝火燃料.上限,
+      store.data.营地.篝火燃料.当前 + preview.addedFuel,
+    );
+  });
+  fuel_amount.value = 1;
+  show_add_fuel.value = false;
+}
 
 const primary_affairs = computed(() =>
   _.pickBy(store.data.部族事务, affair => affair.级别 === '主要'),
@@ -186,6 +312,12 @@ const primary_affairs = computed(() =>
 const secondary_affairs = computed(() =>
   _.pickBy(store.data.部族事务, affair => affair.级别 === '次要'),
 );
+
+function statusClass(status: string) {
+  if (status === '进行中') return 'active';
+  if (status === '已完成') return 'done';
+  return 'pending';
+}
 
 function openMeeting() {
   show_meeting.value = true;
@@ -197,7 +329,7 @@ async function conveneMeeting() {
   const text = content
     ? `[召开部族会议·${meeting_level.value}事务] ${name}：${content}`
     : `[召开部族会议·${meeting_level.value}事务] ${name}`;
-  await sendUserAction(text);
+  await runUserAction(text, () => {});
   meeting_name.value = '';
   meeting_content.value = '';
   meeting_level.value = '主要';
@@ -253,6 +385,13 @@ async function conveneMeeting() {
   margin: 4px 0 0;
 }
 
+.calendar-line {
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: #8c7462;
+  letter-spacing: 0.04em;
+}
+
 .fuel-panel {
   padding: 28px;
 }
@@ -275,11 +414,54 @@ async function conveneMeeting() {
   color: #5c4738;
 }
 
-.fuel-hint {
-  margin: 14px 0 0;
+.fuel-time {
+  font-weight: 900;
+}
+
+.fuel-foot {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.fuel-opinion {
+  flex: 1;
+  min-width: 180px;
+  margin: 0;
   font-size: 0.88rem;
   font-weight: 700;
+  color: #6b4c3a;
+  line-height: 1.5;
+}
+
+.add-fuel-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
+.fuel-stock-hint {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: #8c7462;
+}
+
+.info-grid.three-cols {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.highlight-cell .stat-value {
+  color: #a8543f;
+}
+
+@media (max-width: 560px) {
+  .info-grid.three-cols {
+    grid-template-columns: 1fr;
+  }
 }
 
 .affairs-panel {
@@ -319,6 +501,67 @@ async function conveneMeeting() {
   margin-top: 24px;
   padding: 14px;
   font-size: 1.05rem;
+}
+
+.general-affairs-panel {
+  margin-top: 0;
+}
+
+.affairs-clipboard {
+  color: #7a9e7e;
+  flex-shrink: 0;
+}
+
+.general-affair-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.general-status {
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+
+  &.active {
+    background: #e8f5e9;
+    color: #4a7c59;
+  }
+
+  &.pending {
+    background: #fff3e0;
+    color: #b8860b;
+  }
+
+  &.done {
+    background: #eceff1;
+    color: #607d8b;
+  }
+}
+
+.general-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.member-chip {
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px dashed #d4c2a4;
+  color: #6b4c3a;
+}
+
+.affair-card.general {
+  border-left: 3px solid #7a9e7e;
 }
 
 .mvu-panel {

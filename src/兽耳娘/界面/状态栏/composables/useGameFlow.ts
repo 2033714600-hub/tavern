@@ -1,9 +1,9 @@
-import { has_crash_landing_story } from '../util/crashLandingStory';
+import { has_game_started } from '../util/gameStarted';
 
 export type GamePhase = 'title' | 'route' | 'custom' | 'game';
 
 function resolve_initial_phase(): GamePhase {
-  if (has_crash_landing_story()) {
+  if (has_game_started()) {
     return 'game';
   }
   return get_latest_floor() === 0 ? 'title' : 'game';
@@ -26,7 +26,7 @@ export function is_floor_zero(): boolean {
 
 export function useGameFlow() {
   function enter_tent() {
-    if (has_crash_landing_story() || !is_floor_zero()) {
+    if (has_game_started() || !is_floor_zero()) {
       phase.value = 'game';
       return;
     }
@@ -42,7 +42,7 @@ export function useGameFlow() {
   }
 
   function back_to_title() {
-    if (has_crash_landing_story() || !is_floor_zero()) {
+    if (has_game_started() || !is_floor_zero()) {
       phase.value = 'game';
       return;
     }

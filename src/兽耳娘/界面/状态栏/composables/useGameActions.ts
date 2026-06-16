@@ -1,47 +1,30 @@
-/**
- * 将交互文本填入酒馆当前聊天输入框，由玩家自行发送，不直接写入楼层、不触发 AI。
- */
+import { appendInputLine } from './chatInput';
+import { markStatusBarLocalMutation } from './useStatusBarMutation';
+import { pushUndoSnapshot } from './useActionUndo';
+
+/** 仅追加聊天输入栏文本，不记录撤回点 */
 export async function sendUserAction(message: string) {
+  await appendInputLine(message);
+}
+
+/**
+ * 标准交互：先记录撤回点 → 修改 store → 追加输入栏（未发送前可点「撤回」还原）
+ */
+export async function runUserAction(message: string, mutate: () => void | Promise<void>) {
   const text = message.trim();
-  if (!text) {
-    return;
+  pushUndoSnapshot(text || undefined);
+  markStatusBarLocalMutation(10000);
+  await mutate();
+  if (text) {
+    await appendInputLine(text);
   }
-
-  const $textarea = findChatTextarea();
-  if ($textarea?.length) {
-    $textarea.val(text).trigger('input').trigger('change');
-    ($textarea[0] as HTMLTextAreaElement | undefined)?.focus({ preventScroll: true });
-    return;
-  }
-
-  if (typeof triggerSlash === 'function') {
-    await triggerSlash(`/setinput ${text}`);
-    return;
-  }
-
-  console.info('[兽耳娘]', text);
 }
 
-function findChatTextarea() {
-  const selectors = ['#send_textarea', '#send_textarea_holder textarea'];
-  for (const selector of selectors) {
-    const el = $(selector);
-    if (el.length) {
-      return el;
-    }
-  }
-  try {
-    const parent$ = (window.parent as Window & { $?: JQueryStatic }).$;
-    if (parent$) {
-      for (const selector of selectors) {
-        const el = parent$(selector);
-        if (el.length) {
-          return el;
-        }
-      }
-    }
-  } catch {
-    /* 跨域时忽略 */
-  }
-  return null;
+/** 仅修改 store、不写输入栏 */
+export function runStoreAction(mutate: () => void) {
+  pushUndoSnapshot();
+  markStatusBarLocalMutation();
+  mutate();
 }
+
+export { removeInputLine } from './chatInput';

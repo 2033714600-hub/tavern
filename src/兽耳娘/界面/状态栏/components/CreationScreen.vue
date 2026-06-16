@@ -57,7 +57,7 @@
           自定义开局
         </button>
         <button class="tribal-button continue-btn" type="button" :disabled="entering" @click="on_enter">
-          {{ entering ? '正在进入……' : '进入部落' }}
+          {{ entering ? entering_hint : '进入部落' }}
           <ChevronRight :size="18" :stroke-width="2.5" />
         </button>
       </div>
@@ -69,38 +69,48 @@
 import gsap from 'gsap';
 import { ArrowLeft, ChevronRight, Leaf, Lock, Map, SlidersHorizontal } from 'lucide-vue-next';
 import { CRASH_LANDING_ROUTE, PLACEHOLDER_ROUTES } from '../constants/openingRoutes';
-import { push_crash_landing_story } from '../util/crashLandingStory';
+import { useGameFlow } from '../composables/useGameFlow';
+import { generate_wreck_opening, wait_for_opening_npcs } from '../util/openingGenerate';
+import { useSideDrawer } from '../composables/useSideDrawer';
 
-const emit = defineEmits<{ back: []; custom: []; enter: [] }>();
+const { open_drawer, unlock_drawer } = useSideDrawer();
+const { enter_game } = useGameFlow();
+
+const emit = defineEmits<{ back: []; custom: [] }>();
 
 const crash_route = CRASH_LANDING_ROUTE;
 const placeholder_routes = PLACEHOLDER_ROUTES;
 const selected_id = ref(crash_route.id);
 const card_ref = ref<HTMLElement | null>(null);
 const entering = ref(false);
+const entering_hint = ref('正在进入……');
 
 async function on_enter() {
   if (entering.value || selected_id.value !== crash_route.id) {
     return;
   }
   entering.value = true;
+  entering_hint.value = '正在生成开局……';
   try {
-    await push_crash_landing_story();
-    const card = card_ref.value;
-    if (card) {
-      await gsap.to(card, {
-        opacity: 0,
-        y: 12,
-        duration: 0.32,
-        ease: 'power2.in',
-      });
+    await generate_wreck_opening();
+    entering_hint.value = '正在等待族人入营……';
+    const npc_ready = await wait_for_opening_npcs();
+    enter_game();
+    unlock_drawer();
+    open_drawer();
+    if (!npc_ready) {
+      toastr.warning(
+        '开局正文已生成，但具名NPC 尚未写入变量。请检查 AI 回复是否在 <story> 内用 <npc_panel> 包裹 NPC 块，或点击「重新处理变量」后重试。',
+      );
     }
-    emit('enter');
   } catch (e) {
-    const message = e instanceof Error ? e.message : '推送迫降线剧情失败';
+    unlock_drawer();
+    open_drawer();
+    const message = e instanceof Error ? e.message : '开局生成请求失败';
     toastr.error(message);
   } finally {
     entering.value = false;
+    entering_hint.value = '正在进入……';
   }
 }
 

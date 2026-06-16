@@ -1,6 +1,6 @@
 <template>
   <section class="parchment-panel section">
-    <h3 class="section-title">🏛️ 殖民时代 {{ store.data.世界.当前时代 }}</h3>
+    <h3 class="section-title">🏛️ 时代 {{ store.data.世界.当前时代 }}</h3>
     <div class="era-banner" :class="`era-${store.data.世界.当前时代}`">
       <div class="era-name">{{ current_era.名称 }}</div>
       <div class="era-tag">时代 {{ store.data.世界.当前时代 }} / 共三阶段</div>

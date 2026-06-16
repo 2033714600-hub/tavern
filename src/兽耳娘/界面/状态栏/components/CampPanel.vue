@@ -8,9 +8,21 @@
     </PanelTitle>
 
     <div class="stat-grid">
-      <StatCard label="部落族人" :value="`${store.data.营地.人口}`" tone="people">
-        <Users :size="24" class="icon-people" />
-      </StatCard>
+      <section class="parchment-panel population-card">
+        <div class="population-head">
+          <Users :size="24" class="icon-people" />
+          <div>
+            <p class="population-total">{{ store.data.营地.人口 }}</p>
+            <p class="population-label">部落族人</p>
+          </div>
+        </div>
+        <ul class="population-breakdown">
+          <li v-for="row in population_rows" :key="row.label">
+            <span class="population-race">{{ row.label }}</span>
+            <span class="population-count">{{ row.count }}名</span>
+          </li>
+        </ul>
+      </section>
       <StatCard label="温饱度" :value="`${store.data.营地.生存指标.温饱度}%`" tone="food">
         <Drumstick :size="24" class="icon-food" />
       </StatCard>
@@ -125,40 +137,103 @@
     </div>
 
     <!-- 规划弹窗 -->
-    <div v-if="show_plan" class="modal-overlay" @click.self="show_plan = false">
-      <div class="parchment-panel modal-panel">
-        <ModalClose @click="show_plan = false" />
+    <div v-if="show_plan" class="modal-overlay" @click.self="closePlanModal">
+      <div class="parchment-panel modal-panel plan-modal">
+        <ModalClose @click="closePlanModal" />
         <div class="modal-head">
           <Hammer :size="32" class="accent" />
-          <h3>自定义建筑模块</h3>
+          <h3>规划新设施</h3>
         </div>
-        <div class="form-field">
-          <label class="form-label">建筑名称</label>
-          <input v-model="plan_name" class="form-input" placeholder="例如：高级兽皮帐篷" />
+
+        <div class="plan-tabs">
+          <button
+            class="plan-tab"
+            type="button"
+            :class="{ active: plan_mode === 'tech' }"
+            @click="plan_mode = 'tech'"
+          >
+            <Boxes :size="18" />
+            现有科技
+          </button>
+          <button
+            class="plan-tab"
+            type="button"
+            :class="{ active: plan_mode === 'custom' }"
+            @click="plan_mode = 'custom'"
+          >
+            <Hammer :size="18" />
+            自定义
+          </button>
         </div>
-        <div class="form-field">
-          <label class="form-label">描述</label>
-          <textarea v-model="plan_desc" class="form-textarea" rows="3" placeholder="描述这个建筑的外观和特点..." />
+
+        <div class="plan-detail scroll-area">
+          <template v-if="plan_mode === 'tech'">
+            <div class="form-field compact">
+              <label class="form-label">建筑大小</label>
+              <select v-model="plan_size" class="form-input">
+                <option value="小型">小型（×0.55）</option>
+                <option value="中型">中型（标准）</option>
+                <option value="大型">大型（×1.7）</option>
+              </select>
+            </div>
+            <div class="catalog-grid">
+              <CatalogItemCard
+                v-for="b in tech_buildings_view"
+                :key="b.name"
+                :name="b.name"
+                :description="b.description"
+                :effect="b.effect"
+                :materials="formatMaterialsCatalog(b.scaledMaterials)"
+                :hours="b.scaledHours"
+                :selected="selected_tech === b.name"
+                :locked="!b.unlocked || !b.enough"
+                :ready-text="''"
+                :lock-text="!b.unlocked ? b.prerequisite : undefined"
+                :shortage-text="b.unlocked && !b.enough ? '材料不足' : undefined"
+                @click="pickTechBuilding(b)"
+              />
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="form-field compact">
+              <label class="form-label">建筑大小</label>
+              <select v-model="plan_size" class="form-input">
+                <option value="小型">小型（×0.55）</option>
+                <option value="中型">中型（标准）</option>
+                <option value="大型">大型（×1.7）</option>
+              </select>
+            </div>
+            <div class="form-field compact">
+              <label class="form-label">建筑名称</label>
+              <input v-model="plan_name" class="form-input" placeholder="例如：高级兽皮帐篷" />
+            </div>
+            <div class="form-field compact">
+              <label class="form-label">描述</label>
+              <textarea v-model="plan_desc" class="form-textarea" rows="2" placeholder="外观与特点..." />
+            </div>
+            <div class="form-field compact">
+              <label class="form-label">功能</label>
+              <input v-model="plan_func" class="form-input" placeholder="例如：提升少许向心力" />
+            </div>
+            <div v-if="plan_estimate" class="plan-info">
+              <p class="info-row"><span>类别</span>{{ plan_estimate.类别 }} · {{ plan_estimate.规模 }}</p>
+              <p class="info-row">
+                <span>材料</span>{{ formatMaterials(plan_estimate.所需材料) }}
+              </p>
+              <p class="info-row"><span>工时</span>{{ plan_estimate.所需工时 }} 小时</p>
+            </div>
+          </template>
         </div>
-        <div class="form-field">
-          <label class="form-label">功能</label>
-          <input v-model="plan_func" class="form-input" placeholder="例如：提升少许向心力" />
-        </div>
-        <div v-if="plan_estimate" class="plan-preview">
-          <p class="plan-preview-title">预算估算 · {{ plan_estimate.类别 }} · {{ plan_estimate.规模 }}</p>
-          <p class="plan-preview-row">
-            <span class="plan-preview-label">材料</span>
-            <span>{{ formatMaterials(plan_estimate.所需材料) }}</span>
-          </p>
-          <p class="plan-preview-row">
-            <span class="plan-preview-label">工时</span>
-            <span>{{ plan_estimate.所需工时 }}</span>
-          </p>
-          <p class="plan-preview-hint" :class="{ shortage: plan_material_shortage }">
-            {{ plan_material_shortage ? '仓库材料不足，确认后将进入缺料停工' : '材料充足时可立即开工' }}
-          </p>
-        </div>
-        <button class="tribal-button w-full" type="button" @click="confirmPlan">确认规划</button>
+
+        <button
+          class="tribal-button w-full plan-confirm"
+          type="button"
+          :disabled="!can_confirm_plan"
+          @click="submitPlan"
+        >
+          确认建造
+        </button>
       </div>
     </div>
 
@@ -214,6 +289,14 @@
         </div>
       </div>
     </div>
+
+    <WorkStaffAssignModal
+      v-model="show_work_assign"
+      :title="pending_building ? `指派人员 · ${pending_building.name}` : '指派具名兽耳娘'"
+      :subtitle="pending_building ? `建造工时 ${pending_building.hours} 小时` : ''"
+      pool_key="__new_work__"
+      @confirm="onBuildingStaffConfirm"
+    />
   </div>
 </template>
 
@@ -232,38 +315,124 @@ import {
   Tent,
   Users,
 } from 'lucide-vue-next';
-import { sendUserAction } from '../composables/useGameActions';
-import { useDataStore } from '../store';
+import type { BuildingScale } from '../../../util/estimateFacilityPlan';
 import {
   estimateFacilityPlan,
   formatMaterials,
   warehouseHasMaterials,
 } from '../../../util/estimateFacilityPlan';
+import {
+  isTechBuildingUnlocked,
+  scaleBuildingMaterials,
+  TECH_BUILDING_CATALOG,
+  techBuildingPrerequisite,
+} from '../constants/techBuildingCatalog';
+import { useConfirm } from '../composables/useConfirm';
+import { runUserAction } from '../composables/useGameActions';
+import { formatMaterialsCatalog } from '../util/materials';
+import { useDataStore } from '../store';
+import { syncWorkActivation } from '../util/workQueue';
+import { sync_work_efficiency_bonus } from '../util/campVariableSync';
+import { resolve_population_composition } from '../util/populationComposition';
+import CatalogItemCard from './CatalogItemCard.vue';
 import ModalClose from './ModalClose.vue';
 import PanelTitle from './PanelTitle.vue';
 import ProgressBar from './ProgressBar.vue';
 import StatCard from './StatCard.vue';
+import WorkStaffAssignModal from './WorkStaffAssignModal.vue';
+
+type PendingBuilding = {
+  name: string;
+  desc: string;
+  func: string;
+  materials: Record<string, number>;
+  hours: number;
+  size: BuildingScale;
+  actionParts: string;
+};
 
 const store = useDataStore();
+const { confirm } = useConfirm();
+
+const population_rows = computed(() =>
+  resolve_population_composition(
+    store.data.营地.人口,
+    store.data.具名NPC,
+    store.data.营地.族人构成,
+  ),
+);
 
 const show_warehouse = ref(false);
 const show_plan = ref(false);
 const show_facility = ref(false);
+const show_work_assign = ref(false);
+const pending_building = ref<PendingBuilding | null>(null);
 const selected = ref('');
 const plan_name = ref('');
 const plan_desc = ref('');
 const plan_func = ref('');
+const plan_mode = ref<'tech' | 'custom'>('tech');
+const plan_size = ref<BuildingScale>('中型');
+const selected_tech = ref('');
 
 const plan_estimate = computed(() => {
   const name = plan_name.value.trim();
   if (!name && !plan_desc.value.trim() && !plan_func.value.trim()) return null;
-  return estimateFacilityPlan(name || '新设施', plan_desc.value.trim(), plan_func.value.trim());
+  return estimateFacilityPlan(
+    name || '新设施',
+    plan_desc.value.trim(),
+    plan_func.value.trim(),
+    plan_size.value,
+  );
 });
 
-const plan_material_shortage = computed(() => {
-  if (!plan_estimate.value) return false;
-  return !warehouseHasMaterials(plan_estimate.value.所需材料, store.data.营地.仓库储备);
+const tech_buildings_view = computed(() => {
+  const items = TECH_BUILDING_CATALOG.map(b => {
+    const unlocked = isTechBuildingUnlocked(b, store.data.已解锁科技);
+    const scaled = scaleBuildingMaterials(b.materials, b.hours, plan_size.value);
+    const enough = warehouseHasMaterials(scaled.materials, store.data.营地.仓库储备);
+    return {
+      ...b,
+      unlocked,
+      enough,
+      prerequisite: techBuildingPrerequisite(b),
+      scaledMaterials: scaled.materials,
+      scaledHours: scaled.hours,
+    };
+  });
+  return _.sortBy(items, b => {
+    const ready = b.unlocked && b.enough;
+    return [ready ? 0 : b.unlocked ? 1 : 2, b.name];
+  });
 });
+
+function pickTechBuilding(b: (typeof tech_buildings_view.value)[number]) {
+  if (!b.unlocked || !b.enough) {
+    if (!b.unlocked) {
+      toastr.warning(b.prerequisite);
+    } else {
+      toastr.warning('仓库材料不足');
+    }
+    return;
+  }
+  selected_tech.value = b.name;
+}
+
+const selected_tech_building = computed(() =>
+  tech_buildings_view.value.find(b => b.name === selected_tech.value),
+);
+
+const can_confirm_plan = computed(() => {
+  if (plan_mode.value === 'tech') {
+    const b = selected_tech_building.value;
+    return Boolean(b?.unlocked && b.enough);
+  }
+  return Boolean(plan_name.value.trim() && (plan_desc.value.trim() || plan_func.value.trim()));
+});
+
+function closePlanModal() {
+  show_plan.value = false;
+}
 
 const DEFAULT_WAREHOUSE = {
   坚固木材: { 当前: 0, 上限: 500 },
@@ -331,13 +500,13 @@ const can_reinforce_fence = computed(
 
 async function reinforceFence() {
   if (!can_reinforce_fence.value) return;
-  await sendUserAction(`[加固栅栏] 消耗坚固木材 ${defense_wood_cost.value}`);
+  await runUserAction(`[加固栅栏] 消耗坚固木材 ${defense_wood_cost.value}`, () => {});
 }
 
 async function upgradeWarehouse() {
   if (!can_upgrade_warehouse.value) return;
   const cost_text = formatMaterials(warehouse_upgrade_cost.value);
-  await sendUserAction(`[升级仓库] 消耗${cost_text}`);
+  await runUserAction(`[升级仓库] 消耗${cost_text}`, () => {});
 }
 
 function resourceTone(name: string): 'green' | 'orange' | 'red' | 'amber' {
@@ -368,55 +537,149 @@ function closeFacility() {
   selected.value = '';
 }
 
-async function confirmPlan() {
-  const name = plan_name.value.trim() || '新设施';
-  const desc = plan_desc.value.trim() || '由首领规划的新设施';
-  const func = plan_func.value.trim();
-  const estimate = estimateFacilityPlan(name, desc, func);
-  const material_text = formatMaterials(estimate.所需材料);
-  const enough = warehouseHasMaterials(estimate.所需材料, store.data.营地.仓库储备);
+function resetPlanForm() {
+  plan_name.value = '';
+  plan_desc.value = '';
+  plan_func.value = '';
+  plan_size.value = '中型';
+  plan_mode.value = 'tech';
+  selected_tech.value = '';
+  show_plan.value = false;
+}
 
+async function submitPlan() {
+  if (plan_mode.value === 'tech') {
+    await confirmTechBuilding();
+  } else {
+    await confirmPlan();
+  }
+}
+
+function addBuildingPlan(
+  name: string,
+  desc: string,
+  func: string,
+  materials: Record<string, number>,
+  hours: number,
+  size: BuildingScale,
+  named: string[],
+  unnamed: number,
+) {
   store.data.营地.当前建筑[name] = {
     状态: '蓝图/待建',
     描述: desc,
     功能: func,
     建筑阶段: '蓝图',
-    所需材料: { ...estimate.所需材料 },
-    所需工时: estimate.所需工时,
+    建筑大小: size,
+    所需材料: { ...materials },
+    所需工时: hours,
   };
   store.data.工作队列[name] = {
     类型: '建造',
     进度: 0,
-    状态: enough ? '进行中' : '缺料停工',
-    具名指派: [],
-    协同兽耳娘数: 0,
+    状态: '待指派',
+    具名指派: [...named],
+    协同兽耳娘数: unnamed,
     效率加成: 0,
-    负责人: '',
-    所需工时: estimate.所需工时,
+    负责人: named[0] ?? '',
+    所需工时: hours,
     优先级: 5,
   };
-
-  const parts = [name, desc, func].filter(Boolean);
-  await sendUserAction(
-    `[规划新设施] ${parts.join(' · ')} · 材料：${material_text} · 工时：${estimate.所需工时}`,
+  sync_work_efficiency_bonus(store.data.工作队列[name]);
+  syncWorkActivation(
+    name,
+    store.data.工作队列,
+    store.data.营地.当前建筑,
+    store.data.营地.仓库储备,
   );
-  plan_name.value = '';
-  plan_desc.value = '';
-  plan_func.value = '';
+}
+
+function openBuildingAssign(pending: PendingBuilding) {
+  pending_building.value = pending;
   show_plan.value = false;
+  show_work_assign.value = true;
+}
+
+async function confirmPlan() {
+  const name = plan_name.value.trim() || '新设施';
+  const desc = plan_desc.value.trim() || '由首领规划的新设施';
+  const func = plan_func.value.trim();
+  const estimate = estimateFacilityPlan(name, desc, func, plan_size.value);
+  const parts = [name, desc, func, `建筑大小：${plan_size.value}`].filter(Boolean);
+  openBuildingAssign({
+    name,
+    desc,
+    func,
+    materials: estimate.所需材料,
+    hours: estimate.所需工时,
+    size: plan_size.value,
+    actionParts: parts.join(' · '),
+  });
+}
+
+async function confirmTechBuilding() {
+  const building = tech_buildings_view.value.find(b => b.name === selected_tech.value);
+  if (!building || !building.unlocked || !building.enough) return;
+
+  openBuildingAssign({
+    name: building.name,
+    desc: building.description,
+    func: building.effect,
+    materials: building.scaledMaterials,
+    hours: building.scaledHours,
+    size: plan_size.value,
+    actionParts: `${building.name} · ${building.description} · 效果：${building.effect} · 建筑大小：${plan_size.value}`,
+  });
+}
+
+async function onBuildingStaffConfirm(payload: { named: string[]; unnamed: number }) {
+  const pending = pending_building.value;
+  if (!pending) return;
+  const material_text = formatMaterials(pending.materials);
+  const named_text = payload.named.join('、');
+  await runUserAction(
+    `[规划新设施] ${pending.actionParts} · 材料：${material_text} · 工时：${pending.hours}小时 · 指派：${named_text} · 协同${payload.unnamed}人`,
+    () => {
+      addBuildingPlan(
+        pending.name,
+        pending.desc,
+        pending.func,
+        pending.materials,
+        pending.hours,
+        pending.size,
+        payload.named,
+        payload.unnamed,
+      );
+    },
+  );
+  pending_building.value = null;
+  resetPlanForm();
 }
 
 async function facilityAction(action: string) {
   if (!selected.value) return;
-  await sendUserAction(`[设施管理·${action}] ${selected.value}`);
   if (action === '拆毁建筑') {
-    closeFacility();
+    const ok = await confirm({
+      title: '拆毁建筑',
+      message: `确定拆毁「${selected.value}」吗？\n建筑将被摧毁，已投入的材料无法收回。`,
+      confirmText: '确认拆毁',
+      danger: true,
+    });
+    if (!ok) return;
   }
+  const target = selected.value;
+  await runUserAction(`[设施管理·${action}] ${target}`, () => {
+    if (action === '拆毁建筑') {
+      delete store.data.营地.当前建筑[target];
+      closeFacility();
+    }
+  });
 }
 </script>
 
 <style lang="scss" scoped>
 .panel-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -433,9 +696,76 @@ async function facilityAction(action: string) {
   gap: 14px;
 }
 
+.population-card {
+  grid-column: 1 / -1;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.population-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.population-total {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #4a3b32;
+  line-height: 1.1;
+}
+
+.population-label {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #8c7462;
+  letter-spacing: 0.04em;
+}
+
+.population-breakdown {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.population-breakdown li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid #e4d4ba;
+}
+
+.population-race {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #5c4738;
+}
+
+.population-count {
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: #6b8f71;
+}
+
 @media (min-width: 640px) {
   .stat-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: minmax(220px, 1.35fr) repeat(3, 1fr);
+  }
+
+  .population-card {
+    grid-column: auto;
+    grid-row: span 1;
   }
 }
 
@@ -729,6 +1059,99 @@ async function facilityAction(action: string) {
 .w-full {
   width: 100%;
   padding: 14px;
+}
+
+.plan-modal {
+  max-width: 560px;
+  width: min(96vw, 560px);
+}
+
+.plan-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.plan-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  border: 2px solid #8c7462;
+  border-radius: 12px;
+  background: #fcf8f0;
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: #6b4c3a;
+  cursor: pointer;
+  font-family: inherit;
+
+  &.active {
+    border-color: #4a7c59;
+    background: #e8f3eb;
+    color: #3d5c45;
+  }
+}
+
+.plan-detail {
+  min-height: 240px;
+  max-height: 420px;
+  border: 2px dashed #e4d4ba;
+  border-radius: 14px;
+  background: #fcf8f0;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 520px) {
+  .catalog-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.plan-info {
+  h4 {
+    margin: 0 0 10px;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #3d5c45;
+  }
+}
+
+.info-row {
+  margin: 6px 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #5c4738;
+  line-height: 1.45;
+
+  span {
+    font-weight: 900;
+    color: #4a7c59;
+    margin-right: 6px;
+  }
+}
+
+.form-field.compact {
+  margin-bottom: 10px;
+}
+
+.plan-confirm {
+  margin-top: 0;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 }
 
 .plan-preview {
