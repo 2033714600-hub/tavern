@@ -12,15 +12,3 @@
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-
-/**
-* @vue/runtime-dom v3.5.35
-* (c) 2018-present Yuxi (Evan) You and Vue contributors
-* @license MIT
-**/
-
-/**
-* @vue/shared v3.5.35
-* (c) 2018-present Yuxi (Evan) You and Vue contributors
-* @license MIT
-**/
