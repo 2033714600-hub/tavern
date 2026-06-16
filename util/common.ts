@@ -132,3 +132,34 @@ export function parseString(content: string): any {
     }
   }
 }
+
+/** 状态栏本地改 store 时置位，避免 MVU pull 用旧 stat_data 覆盖未落盘的 UI 操作 */
+const LOCAL_MUTATION_STORAGE_KEY = 'zhuixing:local_mutation_until';
+let statusBarLocalMutationUntil = 0;
+
+function readStoredMutationUntil(): number {
+  try {
+    const stored = Number.parseInt(sessionStorage.getItem(LOCAL_MUTATION_STORAGE_KEY) ?? '', 10);
+    return Number.isFinite(stored) ? stored : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeStoredMutationUntil(until: number) {
+  try {
+    sessionStorage.setItem(LOCAL_MUTATION_STORAGE_KEY, String(until));
+  } catch {
+    /* 隐私模式等场景下忽略 */
+  }
+}
+
+export function markStatusBarLocalMutation(ms = 8000) {
+  statusBarLocalMutationUntil = Date.now() + ms;
+  writeStoredMutationUntil(statusBarLocalMutationUntil);
+}
+
+export function isStatusBarLocalMutation(): boolean {
+  const until = Math.max(statusBarLocalMutationUntil, readStoredMutationUntil());
+  return Date.now() < until;
+}
