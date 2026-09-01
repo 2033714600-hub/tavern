@@ -132,6 +132,7 @@ export function parseString(content: string): any {
     }
   }
 }
+<<<<<<< HEAD
 
 /** 状态栏本地改 store 时置位，避免 MVU pull 用旧 stat_data 覆盖未落盘的 UI 操作 */
 const LOCAL_MUTATION_STORAGE_KEY = 'zhuixing:local_mutation_until';
@@ -163,3 +164,5 @@ export function isStatusBarLocalMutation(): boolean {
   const until = Math.max(statusBarLocalMutationUntil, readStoredMutationUntil());
   return Date.now() < until;
 }
+=======
+>>>>>>> 874db47f3fb8ed8544a74e33a59f780f2c95aa38
