@@ -5,7 +5,10 @@ import _ from 'lodash';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import { ChildProcess, exec, spawn } from 'node:child_process';
 import fs from 'node:fs';
+<<<<<<< HEAD
 import { createServer as createHttpServer } from 'node:http';
+=======
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import RemarkHTML from 'remark-html';
@@ -22,10 +25,14 @@ const require = createRequire(import.meta.url);
 const HTMLInlineCSSWebpackPlugin = require('html-inline-css-webpack-plugin').default;
 
 interface Config {
+<<<<<<< HEAD
   /** socket.io 热重载端口 (不提供 HTTP 文件服务) */
   port: number;
   /** 本地静态文件服务端口, 供 $('body').load('http://localhost:5500/dist/...') 使用 */
   staticPort: number;
+=======
+  port: number;
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
   entries: Entry[];
 }
 interface Entry {
@@ -80,6 +87,7 @@ function glob_script_files() {
 
 const config: Config = {
   port: 6621,
+<<<<<<< HEAD
   staticPort: 5500,
   entries: glob_script_files().map(parse_entry),
 };
@@ -129,14 +137,25 @@ function watch_static_server() {
   });
 }
 
+=======
+  entries: glob_script_files().map(parse_entry),
+};
+
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
 let io: Server;
 function watch_tavern_helper(compiler: webpack.Compiler) {
   if (compiler.options.watch) {
     if (!io) {
+<<<<<<< HEAD
       watch_static_server();
       const port = config.port ?? 6621;
       io = new Server(port, { cors: { origin: '*' } });
       console.info(`\x1b[36m[tavern_helper]\x1b[0m 已启动酒馆热重载服务 (端口 ${port}, 非 HTTP)`);
+=======
+      const port = config.port ?? 6621;
+      io = new Server(port, { cors: { origin: '*' } });
+      console.info(`\x1b[36m[tavern_helper]\x1b[0m 已启动酒馆监听服务`);
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
       io.on('connect', socket => {
         console.info(`\x1b[36m[tavern_helper]\x1b[0m 成功连接到酒馆网页 '${socket.id}', 初始化推送...`);
         io.emit('iframe_updated');
@@ -238,6 +257,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
     .readFileSync(path.join(import.meta.dirname, entry.script), 'utf-8')
     .includes('@obfuscate');
   const script_filepath = path.parse(entry.script);
+<<<<<<< HEAD
   const is_side_drawer_entry = script_filepath.dir.replace(/\\/g, '/').includes('状态栏侧栏');
   const side_drawer_public_url = is_side_drawer_entry
     ? `http://127.0.0.1:${config.staticPort}/dist/${path
@@ -245,6 +265,8 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
         .replace(/^[^\\/]+[\\/]/, '')
         .replace(/\\/g, '/')}/${script_filepath.name}.js`
     : '';
+=======
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
 
   return (_env, argv) => ({
     experiments: {
@@ -524,9 +546,12 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
           __VUE_OPTIONS_API__: false,
           __VUE_PROD_DEVTOOLS__: process.env.CI !== 'true',
           __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
+<<<<<<< HEAD
           ...(is_side_drawer_entry
             ? { __ZHUIXING_DRAWER_BUNDLE_URL__: JSON.stringify(side_drawer_public_url) }
             : {}),
+=======
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
         }),
       )
       .concat(
@@ -601,6 +626,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
       }
 
       if (
+<<<<<<< HEAD
         is_side_drawer_entry &&
         (request === 'vue' ||
           request === 'pinia' ||
@@ -614,6 +640,10 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
         ['vue', 'vue-router'].every(key => request !== key) &&
         !request.startsWith('@vue/') &&
         ['pixi', 'react', 'pinia'].some(key => request.includes(key))
+=======
+        ['vue', 'vue-router'].every(key => request !== key) &&
+        ['pixi', 'react', 'vue'].some(key => request.includes(key))
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
       ) {
         return callback();
       }
@@ -627,18 +657,35 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
         yaml: 'YAML',
         zod: 'z',
       };
+<<<<<<< HEAD
       if (!is_side_drawer_entry && request.startsWith('@vue/')) {
         return callback(null, 'var Vue');
       }
+=======
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
       if (request in global) {
         return callback(null, 'var ' + global[request as keyof typeof global]);
       }
       const cdn = {
         sass: 'https://jspm.dev/sass',
       };
+<<<<<<< HEAD
       return callback(
         null,
         'module-import ' + (cdn[request as keyof typeof cdn] ?? `https://testingcf.jsdelivr.net/npm/${request}/+esm`),
+=======
+      const package_json = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'package.json'), 'utf-8')) as {
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+      };
+      const package_versions = { ...package_json.devDependencies, ...package_json.dependencies };
+      const version = package_versions[request]?.replace(/^[~^]/, '');
+      const versioned_request = /^[.\d]+$/.test(version) ? `${request}@${version}` : request;
+      return callback(
+        null,
+        'module-import ' +
+          (cdn[request as keyof typeof cdn] ?? `https://testingcf.jsdelivr.net/npm/${versioned_request}/+esm`),
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
       );
     },
   });

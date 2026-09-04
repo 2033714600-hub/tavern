@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { isStatusBarLocalMutation } from '@util/common';
 import { klona } from 'klona';
 import { StoreDefinition } from 'pinia';
@@ -58,6 +59,10 @@ function pull_stat_data<T extends z.ZodObject>(
   }
 }
 
+=======
+import { StoreDefinition } from 'pinia';
+
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
 export function defineMvuDataStore<T extends z.ZodObject>(
   schema: T,
   variable_option: VariableOption,
@@ -77,6 +82,7 @@ export function defineMvuDataStore<T extends z.ZodObject>(
       .map(entry => entry[1])
       .join('.')}`,
     errorCatched(() => {
+<<<<<<< HEAD
       const stat_data = _.get(getVariables(variable_option), 'stat_data', {});
       const parsed = schema.safeParse(stat_data, { reportInput: true });
       if (!parsed.success) {
@@ -85,6 +91,30 @@ export function defineMvuDataStore<T extends z.ZodObject>(
       const data = ref(
         (parsed.success ? parsed.data : schema.parse({}, { reportInput: true })) as z.infer<T>,
       ) as Ref<z.infer<T>>;
+=======
+      const data = ref(
+        schema.parse(_.get(getVariables(variable_option), 'stat_data', {}), { reportInput: true }),
+      ) as Ref<z.infer<T>>;
+      if (additional_setup) {
+        additional_setup(data);
+      }
+
+      useIntervalFn(() => {
+        const stat_data = _.get(getVariables(variable_option), 'stat_data', {});
+        const result = schema.safeParse(stat_data);
+        if (result.error) {
+          return;
+        }
+        if (!_.isEqual(data.value, result.data)) {
+          ignoreUpdates(() => {
+            data.value = result.data;
+          });
+          if (!_.isEqual(stat_data, result.data)) {
+            updateVariablesWith(variables => _.set(variables, 'stat_data', result.data), variable_option);
+          }
+        }
+      }, 2000);
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
 
       const { ignoreUpdates } = watchIgnorable(
         data,
@@ -103,6 +133,7 @@ export function defineMvuDataStore<T extends z.ZodObject>(
         { deep: true },
       );
 
+<<<<<<< HEAD
       const pull = () => {
         if (isStatusBarLocalMutation()) {
           return;
@@ -124,6 +155,8 @@ export function defineMvuDataStore<T extends z.ZodObject>(
         }
       }
 
+=======
+>>>>>>> 9c69ceb712d475b9a9bd31fc9b787240061a05a5
       return { data };
     }),
   );
