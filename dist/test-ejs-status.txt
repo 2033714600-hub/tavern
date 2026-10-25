@@ -1,0 +1,82 @@
+@@preprocessing
+<%_
+if (typeof recentUserInput === 'undefined') {
+  var recentUserInput = '';
+  var recentChat = '';
+  const msgs = getChatMessages(-1, -5);
+  for (let m of msgs) {
+    recentChat += m.message + ' ';
+    if (m.is_user) recentUserInput = m.message;
+  }
+}
+var _isFloorZero = typeof isFloorZero !== 'undefined' ? isFloorZero : (getChatMessages().length === 0);
+const _input = recentUserInput || recentChat;
+_%>
+
+<%_ if (!_isFloorZero && _input) { _%>
+
+<%_ if (_input.includes('[召开部族会议')) { _%>
+<%- await getwi('部族会议规则') %>
+<%_ } _%>
+
+<%_ if (/\[与.+?互动(?:·[^\]]+)?\]/.test(_input)) { _%>
+<%- await getwi('兽耳娘互动规则') %>
+<%_ const _interactMatch = _input.match(/\[与(.+?)互动(?:·[^\]]+)?\]/); const _interactName = _interactMatch ? _interactMatch[1].trim() : ''; _%>
+<%_ if (_interactName) { _%>
+【互动变量·<%=_interactName %>】执行具体互动（梳毛/抱抱/投喂等）时，除门槛相关数值外，须 replace【具名NPC.<%=_interactName %>.对视时】与【当前想法】成对更新（见规则示例）。
+<%_ } _%>
+<%_ } _%>
+
+<%_ if (_input.includes('[加固栅栏]')) { _%>
+<%- await getwi('护栏加固策略规则') %>
+<%_ } _%>
+
+<%_ if (_input.includes('[升级仓库]')) { _%>
+<%- await getwi('设施管理规则') %>
+<%_ } _%>
+
+<%_ if (_input.includes('[规划新设施]')) { _%>
+<%- await getwi('规划新设施规则') %>
+<%- await getwi('工作队列规则') %>
+<%_ } _%>
+
+<%_ if (_input.includes('[设施管理·')) { _%>
+<%- await getwi('设施管理规则') %>
+<%_ } _%>
+
+<%_ if (_input.includes('[工作队列·')) { _%>
+【无名族人基准效率】<%- getvar('stat_data.营地.无名族人基准效率', { defaults: 40 }) %>%
+<%- await getwi('工作队列规则') %>
+<%- await getwi('无名NPC工作效率系统') %>
+<%_ } _%>
+
+<%_ if (
+  _input.includes('[综合事物·') ||
+  /营地巡逻|外围巡逻|营地放哨|营地值守|守营|留守|看守|守夜/.test(_input)
+) { _%>
+<%- await getwi('综合事物规则') %>
+<%_ } _%>
+
+<%_ if (
+  _input.includes('[新建编队]') ||
+  _input.includes('[解散编队]') ||
+  _input.includes('[编队调整]') ||
+  _input.includes('[出发探索]') ||
+  _input.includes('[外出狩猎]') ||
+  _input.includes('[外出采集]') ||
+  _input.includes('[忽略区域]') ||
+  _input.includes('[处理见闻]') ||
+  /分为.{0,8}队|分队|编组|两个队伍|清点.*营地|组建.*队/.test(_input)
+) { _%>
+<%- await getwi('探索编队行动机制') %>
+<%_ if (/分为.{0,8}队|分队|两个队伍|编组/.test(_input) && !_input.includes('[新建编队]')) { _%>
+[系统提示：用户以自然语言要求分队/编组。本回复须在 JSONPatch 中 insert /探索编队/{队名}，写入具名成员、无名队员数、计划时长与目标区域；禁止只在正文描述队伍而不更新 stat_data。]
+<%_ } _%>
+<%_ if (_input.includes('[出发探索]') || _input.includes('[探索]')) { _%>
+<%- await getwi('区域动态生成规则') %>
+<%_ } _%>
+<%- await getwi('区域探索与采集规则') %>
+<%- await getwi('无名NPC工作效率系统') %>
+<%_ } _%>
+
+<%_ } _%>
